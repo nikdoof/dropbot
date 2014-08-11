@@ -15,6 +15,7 @@ class DropBot(ClientXMPP):
         self.rooms = kwargs.pop('rooms', [])
         self.nickname = kwargs.pop('nickname', 'Dropbot')
         self.cmd_prefix = kwargs.pop('cmd_prefix', '!')
+        self.kos_url = kwargs.pop('kos_url', 'http://kos.cva-eve.org/api/')
         super(DropBot, self).__init__(**kwargs)
         self.redis_conn = Redis()
 
@@ -129,5 +130,35 @@ class DropBot(ClientXMPP):
             imgs.append(resp)
         if len(imgs):
             return choice(imgs)
+
+    def cmd_kos(self, args, msg):
+        arg = ' '.join(args)
+        resp = requests.get(self.kos_url, params={
+            'c': 'json',
+            'q': arg,
+            'type': 'unit',
+            'details': None
+        })
+        if resp.status_code != requests.codes.ok:
+            return "Something went wrong (Error %s)" % resp.status_code
+        try:
+            data = resp.json()
+        except:
+            return "KOS API returned invalid data."
+        if data['message'] != 'OK':
+            return "KOS API returned an error."
+        if data['total'] == 0:
+            return "KOS returned no results (Not on KOS)"
+
+        results = []
+        for result in data['results']:
+            text = '{} ({}) - {}'.format(
+                result['label'],
+                result['type'],
+                'KOS' if result['kos'] else 'Not KOS'
+            )
+            results.append(text)
+        return '\n'.join(results)
+
 
 
