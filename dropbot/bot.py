@@ -8,6 +8,8 @@ import pkgutil
 from json import loads as base_loads
 from random import choice
 
+from dropbot.map import Map
+
 
 class DropBot(ClientXMPP):
     def __init__(self, **kwargs):
@@ -16,9 +18,11 @@ class DropBot(ClientXMPP):
         self.nickname = kwargs.pop('nickname', 'Dropbot')
         self.cmd_prefix = kwargs.pop('cmd_prefix', '!')
         self.kos_url = kwargs.pop('kos_url', 'http://kos.cva-eve.org/api/')
-        super(DropBot, self).__init__(**kwargs)
-        self.redis_conn = Redis()
 
+        self.redis_conn = Redis()
+        self.map = Map.from_json(pkgutil.get_data('dropbot', 'data/map.json'))
+
+        super(DropBot, self).__init__(**kwargs)
         self.register_plugin('xep_0030')  # Service Discovery
         self.register_plugin('xep_0045')  # Multi-User Chat
         self.register_plugin('xep_0199')  # XMPP Ping
@@ -109,7 +113,7 @@ class DropBot(ClientXMPP):
             resp = requests.get('http://api.eve-central.com/api/marketstat?typeid={}&usesystem=30000142'.format(typeid))
             root = ElementTree.fromstring(resp.content)
         except:
-            return "An error occured tying to get the price for {}".format(name)
+            return "An error occurred tying to get the price for {}".format(name)
 
         return "{} | Sell: {} | Buy: {}".format(
             name,
@@ -160,5 +164,21 @@ class DropBot(ClientXMPP):
             results.append(text)
         return '\n'.join(results)
 
+    def cmd_range(self, args, msg):
+        if len(args) != 1:
+            return '!range <system>'
+        system = args[0]
 
+        system_id = self.map.name_to_systemid(system)
+        if not system_id:
+            return 'Unknown system %s' % system
 
+        res = {}
+        systems = self.map.neighbors_jump(system_id, 7.8)
+        for sys, range in systems:
+            if sys['region'] in res:
+                res[sys['region']] += 1
+            else:
+                res[sys['region']] = 1
+
+        return '{} systems in JDC5 Blops range of {}:\n'.format(len(systems), self.map.systemid_to_name(system_id)) + '\n'.join(['{} - {}'.format(x, y) for x, y in res.items()])

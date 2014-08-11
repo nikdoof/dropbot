@@ -4,3 +4,4 @@ redis
 requests
 humanize
 dnspython
+networkx
