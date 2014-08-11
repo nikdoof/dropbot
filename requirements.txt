@@ -1,0 +1,6 @@
+sleekxmpp
+eveapi
+redis
+requests
+humanize
+dnspython
