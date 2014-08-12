@@ -56,3 +56,6 @@ target/
 
 # IDEA
 .idea
+
+# EVE
+eve.db

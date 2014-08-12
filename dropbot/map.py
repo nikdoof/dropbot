@@ -105,15 +105,22 @@ class Map(networkx.Graph):
         for k, v in self.nodes_iter(data=True):
             if 'name' in v and v['name'].lower() == name.lower():
                 return k
+
+    def get_systems(self, name):
+        """Returns a list of systems by a partial system name"""
+        return [k for k, v in self.nodes_iter(data=True) if name.lower() in v['name'].lower()]
                 
     def system_distance(self, source, destination):
         """Calculates the distance in ly between two systems"""
         return calc_distance(self.node[source], self.node[destination])
 
-    def route_gate(self, source, destination):
+    def route_gate(self, source, destination, filter=None):
         """Route between two systems using gates (fastest)"""
+
+        # TODO: add EVE routing options (highsec/lowsec/fastest)
+
         g = networkx.Graph(data=[(u, v) for u, v, d in self.edges_iter(data=True) if d['link_type'] == 'gate'])
-        return networkx.astar_path(g, source, destination)
+        return networkx.astar_path(self, source, destination)
 
     def route_jump(self, source, destination, range=None, hull=None, ship_class=None):
         """Route between two systems using jumps"""

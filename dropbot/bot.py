@@ -269,3 +269,39 @@ class DropBot(ClientXMPP):
                 res[sys['region']] = 1
 
         return '{} systems in JDC5 {} range of {}:\n'.format(len(systems), ship_class, self.map.get_system_name(system_id)) + '\n'.join(['{} - {}'.format(x, y) for x, y in res.items()])
+
+    def cmd_route(self, args, msg):
+        if len(args) != 2:
+            return '!route <source> <destination>'
+        source, dest = args
+
+        source_systems = self.map.get_systems(source)
+        dest_systems = self.map.get_systems(dest)
+
+        if len(source_systems) > 1:
+            if len(source_systems) > 10:
+                return 'More than 10 systems match {}, please provide a more complete name'.format(source)
+            return 'Did you mean: {}?'.format(', '.join([self.map.get_system_name(x) for x in source_systems]))
+        elif len(source_systems) == 0:
+            return 'No systems found matching {}'.format(source)
+        else:
+            source_system = source_systems[0]
+
+        if len(dest_systems) > 1:
+            if len(dest_systems) > 10:
+                return 'More than 10 systems match {}, please provide a more complete name'.format(source)
+            return 'Did you mean: {}?'.format(', '.join([self.map.get_system_name(x) for x in dest_systems]))
+        elif len(dest_systems) == 0:
+            return 'No systems found matching {}'.format(dest)
+        else:
+            dest_system = dest_systems[0]
+
+        route = self.map.route_gate(source_system, dest_system)
+        route_names = ' -> '.join(['{} ({})'.format(x['name'], round(x['security'], 2)) for x in [self.map.node[y] for y in route]])
+
+        return '{} jumps from {} to {}\n{}'.format(
+            len(route),
+            self.map.get_system_name(source_system),
+            self.map.get_system_name(dest_system),
+            route_names
+        )
