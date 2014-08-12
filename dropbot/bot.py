@@ -7,13 +7,19 @@ from humanize import intcomma
 import pkgutil
 from json import loads as base_loads
 from random import choice
-
 from dropbot.map import Map
+
+
+market_systems = [
+    ('Jita', 30000142),
+    ('Amarr', 30002187),
+    ('Rens', 30002510),
+    ('Dodixie', 30002659),
+]
 
 
 class DropBot(ClientXMPP):
     def __init__(self, **kwargs):
-        print kwargs
         self.rooms = kwargs.pop('rooms', [])
         self.nickname = kwargs.pop('nickname', 'Dropbot')
         self.cmd_prefix = kwargs.pop('cmd_prefix', '!')
@@ -86,12 +92,22 @@ class DropBot(ClientXMPP):
                     bdy, html = resp, None
                 self.send_message(msg['from'], mbody=bdy, mhtml=html, mtype=msg['type'])
 
-    # Commands
+    # Helpers
 
-    def cmd_jita(self, args, msg):
+    def _get_evecentral_price(self, type_id, system_id):
+        try:
+            resp = requests.get('http://api.eve-central.com/api/marketstat?typeid={}&usesystem={}'.format(type_id, system_id))
+            root = ElementTree.fromstring(resp.content)
+        except:
+            return None
+
+        return (float(root.findall("./marketstat/type[@id='{}']/sell/min".format(type_id))[0].text),
+                float(root.findall("./marketstat/type[@id='{}']/buy/max".format(type_id))[0].text))
+
+    def _system_price(self, args, msg, system, system_id):
         item = ' '.join(args)
         if item.strip() == '':
-            return 'Usage: !jita <item>'
+            return 'Usage: !{} <item>'.format(system.lower())
         if item.lower() == 'plex':
             item = '30 Day'
         types = dict([(i, v) for i, v in self.types.iteritems() if item.lower() in v.lower()])
@@ -110,16 +126,74 @@ class DropBot(ClientXMPP):
             typeid, name = types.popitem()
 
         try:
-            resp = requests.get('http://api.eve-central.com/api/marketstat?typeid={}&usesystem=30000142'.format(typeid))
+            resp = requests.get('http://api.eve-central.com/api/marketstat?typeid={}&usesystem={}'.format(typeid, system_id))
             root = ElementTree.fromstring(resp.content)
         except:
             return "An error occurred tying to get the price for {}".format(name)
 
-        return "{} | Sell: {} | Buy: {}".format(
+        return "{} @ {} | Sell: {} | Buy: {}".format(
             name,
+            system,
             intcomma(float(root.findall("./marketstat/type[@id='{}']/sell/min".format(typeid))[0].text)),
             intcomma(float(root.findall("./marketstat/type[@id='{}']/buy/max".format(typeid))[0].text)),
         )
+
+    # Commands
+
+    def cmd_price(self, args, msg):
+        item = ' '.join(args)
+        if item.strip() == '':
+            return 'Usage: !price <item>'
+        if item.lower() == 'plex':
+            item = '30 Day'
+        types = dict([(i, v) for i, v in self.types.iteritems() if item.lower() in v.lower()])
+        if len(types) > 1:
+            for i, v in types.iteritems():
+                if item.lower() == v.lower():
+                    type_id, type_name = i, v
+                    break
+            else:
+                if len(types) > 10:
+                    return "More than 10 items found, please narrow down what you want."
+                return "Did you mean: {}?".format(
+                    ', '.join(types.itervalues())
+                )
+        else:
+            type_id, type_name = types.popitem()
+
+        min_sell = 0
+        max_buy = 0
+        sell_sys = None
+        buy_sys = None
+
+        for name, sys_id in market_systems:
+            sell, buy = self._get_evecentral_price(type_id, sys_id)
+            print name, sell, buy
+            if sell < min_sell or min_sell == 0:
+                min_sell = sell
+                sell_sys = name
+            if buy > max_buy:
+                max_buy = buy
+                buy_sys = name
+
+        print min_sell
+        return '{}\nBest Sell: {} @ {} ISK\nBest Buy: {} @ {} ISK'.format(
+            type_name,
+            sell_sys, intcomma(min_sell),
+            buy_sys, intcomma(max_buy)
+        )
+
+    def cmd_jita(self, args, msg):
+        return self._system_price(args, msg, 'Jita', 30000142)
+
+    def cmd_amarr(self, args, msg):
+        return self._system_price(args, msg, 'Amarr', 30002187)
+
+    def cmd_rens(self, args, msg):
+        return self._system_price(args, msg, 'Rens', 30002510)
+
+    def cmd_dodixie(self, args, msg):
+        return self._system_price(args, msg, 'Dodixie', 30002659)
 
     def cmd_redditimg(self, args, msg):
         """Shows a random picture from imgur.com reddit section"""
@@ -169,16 +243,16 @@ class DropBot(ClientXMPP):
             return '!range <system>'
         system = args[0]
 
-        system_id = self.map.name_to_systemid(system)
+        system_id = self.map.get_system_id(system)
         if not system_id:
             return 'Unknown system %s' % system
 
         res = {}
-        systems = self.map.neighbors_jump(system_id, 7.8)
+        systems = self.map.neighbors_jump(system_id, ship_class='blackops')
         for sys, range in systems:
             if sys['region'] in res:
                 res[sys['region']] += 1
             else:
                 res[sys['region']] = 1
 
-        return '{} systems in JDC5 Blops range of {}:\n'.format(len(systems), self.map.systemid_to_name(system_id)) + '\n'.join(['{} - {}'.format(x, y) for x, y in res.items()])
+        return '{} systems in JDC5 Blops range of {}:\n'.format(len(systems), self.map.get_system_name(system_id)) + '\n'.join(['{} - {}'.format(x, y) for x, y in res.items()])
