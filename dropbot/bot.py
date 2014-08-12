@@ -334,3 +334,10 @@ class DropBot(ClientXMPP):
 
         self.map.add_jumpbridge(source_system, dest_system)
         return "Done"
+
+    def cmd_mapstats(self, args, msg):
+        return '{} systems, {} gate jumps, {} jump bridges'.format(
+            len(self.map.nodes()),
+            len([u for u, v, d in self.map.edges_iter(data=True) if d['link_type'] == 'gate']),
+            len([u for u, v, d in self.map.edges_iter(data=True) if d['link_type'] == 'bridge'])
+        )
