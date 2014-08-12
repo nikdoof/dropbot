@@ -26,7 +26,7 @@ class DropBot(ClientXMPP):
         self.nickname = kwargs.pop('nickname', 'Dropbot')
         self.cmd_prefix = kwargs.pop('cmd_prefix', '!')
         self.kos_url = kwargs.pop('kos_url', 'http://kos.cva-eve.org/api/')
-        self.hidden_commands = []
+        self.hidden_commands = ['cmd_prefix']
 
         self.redis_conn = Redis()
         self.map = Map.from_json(pkgutil.get_data('dropbot', 'data/map.json'))
