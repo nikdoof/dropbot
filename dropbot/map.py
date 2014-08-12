@@ -115,7 +115,7 @@ class Map(networkx.Graph):
                 
     def system_distance(self, source, destination):
         """Calculates the distance in ly between two systems"""
-        return calc_distance(self.node[source], self.node[destination])
+        return calc_distance(self.node[source]['coords'], self.node[destination]['coords'])
 
     def route_gate(self, source, destination, filter=None):
         """Route between two systems using gates (fastest)"""

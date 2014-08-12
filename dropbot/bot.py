@@ -7,7 +7,7 @@ from humanize import intcomma
 import pkgutil
 from json import loads as base_loads
 from random import choice
-from dropbot.map import Map, base_range
+from dropbot.map import Map, base_range, ship_class_to_range
 
 
 market_systems = [
@@ -323,4 +323,34 @@ class DropBot(ClientXMPP):
             len(self.map.nodes()),
             len([u for u, v, d in self.map.edges_iter(data=True) if d['link_type'] == 'gate']),
             len([u for u, v, d in self.map.edges_iter(data=True) if d['link_type'] == 'bridge'])
+        )
+
+    def cmd_hit(self, args, msg):
+        if len(args) != 2:
+            return '!hit <source> <destination>'
+        source, dest = args
+
+        source = self._system_picker(source)
+        if isinstance(source, basestring):
+            return source
+        dest = self._system_picker(dest)
+        if isinstance(dest, basestring):
+            return dest
+
+        ly = self.map.system_distance(source, dest)
+
+        res = []
+        for ship_class in base_range.keys():
+            res1 = []
+            for skill in [4, 5]:
+                if ship_class_to_range(ship_class, skill) >= ly:
+                    res1.append('JDC{}'.format(skill))
+            if len(res1):
+                res.append('{}: {}'.format(ship_class, ', '.join(res1)))
+
+        return '{} -> {} ({}ly) Capable Ship Types:\n{}'.format(
+            self.map.get_system_name(source),
+            self.map.get_system_name(dest),
+            round(ly, 2),
+            '\n'.join(res)
         )
