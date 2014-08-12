@@ -337,7 +337,17 @@ class DropBot(ClientXMPP):
         if isinstance(dest, basestring):
             return dest
 
+        if self.map.node[dest]['security'] >= 0.5:
+            return '{} is a highsec system'.format(self.map.get_system_name(dest))
+
         ly = self.map.system_distance(source, dest)
+
+        if ly > 6.5 * (1 + (0.25 * 5)):
+            return '{} to {} is greater than {}ly (maximum jump range of all ships)'.format(
+                self.map.get_system_name(source),
+                self.map.get_system_name(dest),
+                6.5 * (1 + (0.25 * 5))
+            )
 
         res = []
         for ship_class in base_range.keys():
