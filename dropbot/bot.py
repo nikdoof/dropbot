@@ -96,6 +96,17 @@ class DropBot(ClientXMPP):
 
     # Helpers
 
+    def _system_picker(self, name):
+        systems = self.map.get_systems(name)
+        if len(systems) > 1:
+            if len(systems) > 10:
+                return 'More than 10 systems match {}, please provide a more complete name'.format(name)
+            return 'Did you mean: {}?'.format(', '.join([self.map.get_system_name(x) for x in systems]))
+        elif len(systems) == 0:
+            return 'No systems found matching {}'.format(name)
+        else:
+            return systems[0]
+
     def _get_evecentral_price(self, type_id, system_id):
         try:
             resp = requests.get('http://api.eve-central.com/api/marketstat?typeid={}&usesystem={}'.format(type_id, system_id))
@@ -256,9 +267,9 @@ class DropBot(ClientXMPP):
                 ', '.join(base_range.keys())
             )
 
-        system_id = self.map.get_system_id(system)
-        if not system_id:
-            return 'Unknown system %s' % system
+        system_id = self._system_picker(system)
+        if isinstance(system_id, basestring):
+            return system_id
 
         res = {}
         systems = self.map.neighbors_jump(system_id, ship_class=ship_class)
@@ -275,34 +286,20 @@ class DropBot(ClientXMPP):
             return '!route <source> <destination>'
         source, dest = args
 
-        source_systems = self.map.get_systems(source)
-        dest_systems = self.map.get_systems(dest)
+        source = self._system_picker(source)
+        if isinstance(source, basestring):
+            return source
+        dest = self._system_picker(dest)
+        if isinstance(dest, basestring):
+            return dest
 
-        if len(source_systems) > 1:
-            if len(source_systems) > 10:
-                return 'More than 10 systems match {}, please provide a more complete name'.format(source)
-            return 'Did you mean: {}?'.format(', '.join([self.map.get_system_name(x) for x in source_systems]))
-        elif len(source_systems) == 0:
-            return 'No systems found matching {}'.format(source)
-        else:
-            source_system = source_systems[0]
-
-        if len(dest_systems) > 1:
-            if len(dest_systems) > 10:
-                return 'More than 10 systems match {}, please provide a more complete name'.format(source)
-            return 'Did you mean: {}?'.format(', '.join([self.map.get_system_name(x) for x in dest_systems]))
-        elif len(dest_systems) == 0:
-            return 'No systems found matching {}'.format(dest)
-        else:
-            dest_system = dest_systems[0]
-
-        route = self.map.route_gate(source_system, dest_system)
+        route = self.map.route_gate(source, dest)
         route_names = ' -> '.join(['{} ({})'.format(x['name'], round(x['security'], 2)) for x in [self.map.node[y] for y in route]])
 
         return '{} jumps from {} to {}\n{}'.format(
             len(route)-1,
-            self.map.get_system_name(source_system),
-            self.map.get_system_name(dest_system),
+            self.map.get_system_name(source),
+            self.map.get_system_name(dest),
             route_names
         )
 
@@ -311,28 +308,14 @@ class DropBot(ClientXMPP):
             return '!addjb <source> <destination>'
         source, dest = args
 
-        source_systems = self.map.get_systems(source)
-        dest_systems = self.map.get_systems(dest)
+        source = self._system_picker(source)
+        if isinstance(source, basestring):
+            return source
+        dest = self._system_picker(dest)
+        if isinstance(dest, basestring):
+            return dest
 
-        if len(source_systems) > 1:
-            if len(source_systems) > 10:
-                return 'More than 10 systems match {}, please provide a more complete name'.format(source)
-            return 'Did you mean: {}?'.format(', '.join([self.map.get_system_name(x) for x in source_systems]))
-        elif len(source_systems) == 0:
-            return 'No systems found matching {}'.format(source)
-        else:
-            source_system = source_systems[0]
-
-        if len(dest_systems) > 1:
-            if len(dest_systems) > 10:
-                return 'More than 10 systems match {}, please provide a more complete name'.format(source)
-            return 'Did you mean: {}?'.format(', '.join([self.map.get_system_name(x) for x in dest_systems]))
-        elif len(dest_systems) == 0:
-            return 'No systems found matching {}'.format(dest)
-        else:
-            dest_system = dest_systems[0]
-
-        self.map.add_jumpbridge(source_system, dest_system)
+        self.map.add_jumpbridge(source, dest)
         return "Done"
 
     def cmd_mapstats(self, args, msg):
