@@ -7,7 +7,7 @@ from humanize import intcomma
 import pkgutil
 from json import loads as base_loads
 from random import choice
-from dropbot.map import Map
+from dropbot.map import Map, base_range
 
 
 market_systems = [
@@ -241,20 +241,31 @@ class DropBot(ClientXMPP):
         return '\n'.join(results)
 
     def cmd_range(self, args, msg):
-        if len(args) != 1:
-            return '!range <system>'
+        if len(args) == 0 or len(args) > 2:
+            return '!range <system> <ship class>'
+
         system = args[0]
+        if len(args) == 2:
+            ship_class = args[1].lower()
+        else:
+            ship_class = 'blackops'
+
+        if ship_class not in base_range.keys():
+            return 'Unknown class {}, please use one of: {}'.format(
+                ship_class,
+                ', '.join(base_range.keys())
+            )
 
         system_id = self.map.get_system_id(system)
         if not system_id:
             return 'Unknown system %s' % system
 
         res = {}
-        systems = self.map.neighbors_jump(system_id, ship_class='blackops')
+        systems = self.map.neighbors_jump(system_id, ship_class=ship_class)
         for sys, range in systems:
             if sys['region'] in res:
                 res[sys['region']] += 1
             else:
                 res[sys['region']] = 1
 
-        return '{} systems in JDC5 Blops range of {}:\n'.format(len(systems), self.map.get_system_name(system_id)) + '\n'.join(['{} - {}'.format(x, y) for x, y in res.items()])
+        return '{} systems in JDC5 {} range of {}:\n'.format(len(systems), ship_class, self.map.get_system_name(system_id)) + '\n'.join(['{} - {}'.format(x, y) for x, y in res.items()])
