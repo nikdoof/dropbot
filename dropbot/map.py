@@ -86,7 +86,10 @@ class Map(networkx.Graph):
             for destination_data, destination_range in self.neighbors_jump(source_id, max_jump):
                 if destination_data['security'] < 0.5:
                     self.add_edge(source_id, destination_data['system_id'], weight=destination_range, link_type='jump')
-            
+
+    def add_jumpbridge(self, source_id, destination_id):
+        self.add_edge(source_id, destination_id, weight=1, link_type='bridge')
+
     def to_json(self):
         """Dump map data to a Node Link JSON output"""
         return dumps(node_link_data(self))
@@ -119,7 +122,7 @@ class Map(networkx.Graph):
 
         # TODO: add EVE routing options (highsec/lowsec/fastest)
 
-        g = networkx.Graph(data=[(u, v) for u, v, d in self.edges_iter(data=True) if d['link_type'] == 'gate'])
+        g = networkx.Graph(data=[(u, v) for u, v, d in self.edges_iter(data=True) if d['link_type'] == 'gate' or d['link_type'] == 'bridge'])
         return networkx.astar_path(self, source, destination)
 
     def route_jump(self, source, destination, range=None, hull=None, ship_class=None):

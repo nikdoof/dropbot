@@ -300,8 +300,37 @@ class DropBot(ClientXMPP):
         route_names = ' -> '.join(['{} ({})'.format(x['name'], round(x['security'], 2)) for x in [self.map.node[y] for y in route]])
 
         return '{} jumps from {} to {}\n{}'.format(
-            len(route),
+            len(route)-1,
             self.map.get_system_name(source_system),
             self.map.get_system_name(dest_system),
             route_names
         )
+
+    def cmd_addjb(self, args, msg):
+        if len(args) != 2:
+            return '!addjb <source> <destination>'
+        source, dest = args
+
+        source_systems = self.map.get_systems(source)
+        dest_systems = self.map.get_systems(dest)
+
+        if len(source_systems) > 1:
+            if len(source_systems) > 10:
+                return 'More than 10 systems match {}, please provide a more complete name'.format(source)
+            return 'Did you mean: {}?'.format(', '.join([self.map.get_system_name(x) for x in source_systems]))
+        elif len(source_systems) == 0:
+            return 'No systems found matching {}'.format(source)
+        else:
+            source_system = source_systems[0]
+
+        if len(dest_systems) > 1:
+            if len(dest_systems) > 10:
+                return 'More than 10 systems match {}, please provide a more complete name'.format(source)
+            return 'Did you mean: {}?'.format(', '.join([self.map.get_system_name(x) for x in dest_systems]))
+        elif len(dest_systems) == 0:
+            return 'No systems found matching {}'.format(dest)
+        else:
+            dest_system = dest_systems[0]
+
+        self.map.add_jumpbridge(source_system, dest_system)
+        return "Done"
