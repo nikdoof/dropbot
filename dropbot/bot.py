@@ -26,6 +26,7 @@ class DropBot(ClientXMPP):
         self.nickname = kwargs.pop('nickname', 'Dropbot')
         self.cmd_prefix = kwargs.pop('cmd_prefix', '!')
         self.kos_url = kwargs.pop('kos_url', 'http://kos.cva-eve.org/api/')
+        self.hidden_commands = []
 
         self.redis_conn = Redis()
         self.map = Map.from_json(pkgutil.get_data('dropbot', 'data/map.json'))
@@ -152,6 +153,11 @@ class DropBot(ClientXMPP):
         )
 
     # Commands
+
+    def cmd_help(self, args, msg):
+        return "Commands: {}".format(
+            ', '.join([self.cmd_prefix + x[4:] for x in dir(self) if x[:4] == 'cmd_' and x not in self.hidden_commands]),
+        )
 
     def cmd_price(self, args, msg):
         item = ' '.join(args)
