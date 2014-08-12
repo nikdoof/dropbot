@@ -15,6 +15,8 @@ market_systems = [
     ('Amarr', 30002187),
     ('Rens', 30002510),
     ('Dodixie', 30002659),
+    ('HED-GP', 30001161),
+    ('GE-8JV', 30001198),
 ]
 
 
@@ -169,7 +171,7 @@ class DropBot(ClientXMPP):
         for name, sys_id in market_systems:
             sell, buy = self._get_evecentral_price(type_id, sys_id)
             print name, sell, buy
-            if sell < min_sell or min_sell == 0:
+            if (sell < min_sell or min_sell == 0) and sell > 0:
                 min_sell = sell
                 sell_sys = name
             if buy > max_buy:
