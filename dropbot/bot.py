@@ -378,9 +378,20 @@ class DropBot(ClientXMPP):
         )
 
     def cmd_jump(self, args, msg):
-        if len(args) != 5:
-            return '!jump <source> <destination> <ship class> <jdc level> <jfc level>'
-        source, dest, ship_class, jdc, jfc = args
+        if len(args) < 2:
+            return '!jump <source> <destination> (<ship class> <jdc level> <jfc level>)'
+        elif len(args) == 2:
+            source, dest = args
+            ship_class = 'blackops'
+            jdc = jfc = 5
+        elif len(args) == 3:
+            source, dest, ship_class = args
+            jdc = jfc = 5
+        elif len(args) == 4:
+            source, dest, ship_class, jdc = args
+            jfc = 5
+        else:
+            source, dest, ship_class, jdc, jfc = args
 
         source = self._system_picker(source)
         if isinstance(source, basestring):
@@ -403,9 +414,12 @@ class DropBot(ClientXMPP):
 
         route = self.map.route_jump(source, dest, ship_class=ship_class)
         if len(route):
-            return '{} to {}, {} jumps ({}ly / {} isotopes):\n{}'.format(
+            return '{} to {} ({}/{}/{}), {} jumps ({}ly / {} isotopes):\n{}'.format(
                 self.map.get_system_name(source),
                 self.map.get_system_name(dest),
+                ship_class,
+                jdc,
+                jfc,
                 len(route),
                 round(self.map.route_jump_distance(route), 2),
                 round(self.map.route_jump_isotopes(route, int(jfc), ship_class=ship_class), 0),
