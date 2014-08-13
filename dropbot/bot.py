@@ -376,3 +376,40 @@ class DropBot(ClientXMPP):
             round(ly, 2),
             '\n'.join(res)
         )
+
+    def cmd_jump(self, args, msg):
+        if len(args) != 5:
+            return '!jump <source> <destination> <ship class> <jdc level> <jfc level>'
+        source, dest, ship_class, jdc, jfc = args
+
+        source = self._system_picker(source)
+        if isinstance(source, basestring):
+            return source
+        dest = self._system_picker(dest)
+        if isinstance(dest, basestring):
+            return dest
+
+        if ship_class not in base_range.keys():
+            return 'Unknown class {}, please use one of: {}'.format(
+                ship_class,
+                ', '.join(base_range.keys())
+            )
+
+        try:
+            int(jdc)
+            int(jfc)
+        except ValueError:
+            return 'Invalid JDC/JFC level'
+
+        route = self.map.route_jump(source, dest, ship_class=ship_class)
+        if len(route):
+            return '{} to {}, {} jumps ({}ly / {} isotopes):\n{}'.format(
+                self.map.get_system_name(source),
+                self.map.get_system_name(dest),
+                len(route),
+                round(self.map.route_jump_distance(route), 2),
+                round(self.map.route_jump_isotopes(route, int(jfc), ship_class=ship_class), 0),
+                ' -> '.join([self.map.get_system_name(x) for x in route])
+            )
+        else:
+            return 'No route found'
