@@ -392,6 +392,7 @@ class DropBot(ClientXMPP):
             jfc = 5
         else:
             source, dest, ship_class, jdc, jfc = args
+        jf = 5
 
         source = self._system_picker(source)
         if isinstance(source, basestring):
@@ -420,9 +421,9 @@ class DropBot(ClientXMPP):
                 ship_class,
                 jdc,
                 jfc,
-                len(route),
+                len(route)-1,
                 round(self.map.route_jump_distance(route), 2),
-                round(self.map.route_jump_isotopes(route, int(jfc), ship_class=ship_class), 0),
+                round(self.map.route_jump_isotopes(route, int(jfc), ship_class=ship_class, jf_skill=jf), 0),
                 ' -> '.join([self.map.get_system_name(x) for x in route])
             )
         else:
