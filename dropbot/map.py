@@ -42,9 +42,21 @@ base_range = {
     'blackops': 3.5,
 }
 
+isotope_usage = {
+    'carrier': 1000,
+    'dreadnought': 1000,
+    'industrial': 1000,
+    'jumpfreighter': 3100,
+    'supercarrier': 1000,
+    'titan': 1000,
+    'blackops': 400,
+}
+
+
+EVE_LY = 9460000000000000  # EVE's definition of a ly in KM
+
 def calc_distance(sys1, sys2):
     """Calculate the distance in light years between two sets of 3d coordinates"""
-    EVE_LY = 9460000000000000  # EVE's definition of a ly in KM
     return math.sqrt(sum((a - b)**2 for a, b in zip(sys1, sys2))) / EVE_LY
 
 def hull_to_range(hull, jdc_skill):
@@ -125,11 +137,99 @@ class Map(networkx.Graph):
         g = networkx.Graph(data=[(u, v) for u, v, d in self.edges_iter(data=True) if d['link_type'] == 'gate' or d['link_type'] == 'bridge'])
         return networkx.astar_path(self, source, destination)
 
-    def route_jump(self, source, destination, range=None, hull=None, ship_class=None):
-        """Route between two systems using jumps"""
-        g = networkx.Graph(data=[(u, v) for u, v, d in self.edges_iter(data=True) if d['link_type'] == 'jump' and d['weight'] <= range])
-        return networkx.dijkstra_path(g, source, destination)
+    def _route_jump_fast(self, source, destination, range=None, hull=None, ship_class=None, station_only=False, avoid_systems=[]):
+        """A fast but error prone route calculation between two systems using jumps"""
+        print source, destination
+        route = [source]
+        current_system = source
+        while not destination in route:
+            next_distance = None
+            next_system = None
+            # Iterate through jump neighbour systems to find the best candidate
+            for system, system_distance in self.neighbors_jump(current_system, range, hull, ship_class):
+                if system['security'] >= 0.45:
+                    continue
+                if station_only and not system['station']:
+                    continue
+                if system['system_id'] in avoid_systems:
+                    continue
+                if system['system_id'] == destination:
+                    route.append(destination)
+                    return route
 
+                # Use heuristics to identify the best candidate (one that gets us closest to the target)
+                distance_to_target = self.system_distance(system['system_id'], destination)
+                if distance_to_target < next_distance or not next_distance:
+                    next_distance = distance_to_target
+                    next_system = system['system_id']
+            route.append(next_system)
+            current_system = next_system
+            
+    def route_jump(self, source, destination, range=None, hull=None, ship_class=None, station_only=False, avoid_systems=[]):
+        """Calculate a jump route between two systems"""
+        closed = set()
+        open = set([source])
+        route = {}
+        g_score = {source: 0}
+        f_score = {source: g_score[source] + self.system_distance(source, destination)}
+        
+        while len(open):
+            current = min([x for x in f_score.items() if x[0] in open], key=lambda x: x[1])[0]
+            if current == destination:
+            
+                def build_path(route, current):
+                    if current in route:
+                        p = build_path(route, route[current])
+                        p.append(current)
+                        return p
+                    return [current] 
+                    
+                return build_path(route, destination)
+            open.remove(current)
+            closed.add(current)
+            for neighbor, distance in self.neighbors_jump(current, range, hull, ship_class):
+                neighbor_id = neighbor['system_id']
+                if neighbor_id in closed or \
+                   neighbor['security'] >= 0.45 or \
+                   (station_only and not neighbor['station']) or \
+                   neighbor_id in avoid_systems:
+                    continue
+                    
+                score = g_score[current] + self.system_distance(current, neighbor_id)
+                if neighbor_id not in open or score < g_score[neighbor_id]:
+                    route[neighbor_id] = current
+                    g_score[neighbor_id] = score
+                    f_score[neighbor_id] = score + self.system_distance(neighbor_id, destination)
+                    if neighbor_id not in open:
+                        open.add(neighbor_id)
+
+    def route_jump_distance(self, route):
+        """Calculate the total ly distance of a route"""
+        source = route[0]
+        ly = 0.0
+        for destination in route[1:]:
+            if destination == source:
+                return ly
+            ly += self.system_distance(source, destination)
+            source = destination
+        return ly
+        
+    def route_jump_isotopes(self, route, jfc_skill, jf_skill=None, hull=None, ship_class=None):
+        """Calculate the total number of isotopes needed for a route"""
+        if not hull and not ship_class:
+            raise ValueError('No hull or ship class provided')
+        if hull:
+            ship_class = hull_classes[hull]
+        if ship_class == 'jumpfreighter' and not jf_skill:
+            raise ValueError('No Jump Freighter skill level provided for a jump freighter ship')
+            
+        multi = 1 - (.1 * jfc_skill)
+        if ship_class == 'jumpfreighter':
+            multi = multi * (1 - (.1 * jf_skill))
+        base = isotope_usage[ship_class] *  multi
+        ly = self.route_jump_distance(route) 
+        return round(ly * base, 0)
+              
     def neighbors_gate(self, system_id):
         """List systems that are connected to a system by gates"""
         return self.neighbors(system_id)
@@ -145,15 +245,24 @@ class Map(networkx.Graph):
                 range = ship_class_to_range(ship_class, 5)
             else:
                 raise ValueError('No range, hull, or ship class provided')
+              
+        # Calculate the max coords for the jump radius, avoiding costly calc_distance calls
+        range_x = (source['coords'][0] + (range * EVE_LY), source['coords'][0] - (range * EVE_LY))
+        range_y = (source['coords'][1] + (range * EVE_LY), source['coords'][1] - (range * EVE_LY))
+        range_z = (source['coords'][2] + (range * EVE_LY), source['coords'][2] - (range * EVE_LY))
         
         destinations = []
         for destination_id, destination_data in self.nodes_iter(data=True):
+            if destination_data['coords'][0] > range_x[0] or destination_data['coords'][0] < range_x[1] or \
+               destination_data['coords'][1] > range_y[0] or destination_data['coords'][1] < range_y[1] or \
+               destination_data['coords'][2] > range_z[0] or destination_data['coords'][2] < range_z[1]:
+                  continue
             distance = calc_distance(source['coords'], destination_data['coords'])
             if distance <= range and destination_id != system_id:
                 destinations.append((destination_data, distance))
         return destinations
-        
-        
+
+
 if __name__ == '__main__':
 
     from sqlite3 import connect
