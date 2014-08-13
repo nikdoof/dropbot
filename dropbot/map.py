@@ -43,13 +43,13 @@ base_range = {
 }
 
 isotope_usage = {
-    'carrier': 1000,
-    'dreadnought': 1000,
-    'industrial': 1000,
-    'jumpfreighter': 3100,
-    'supercarrier': 1000,
-    'titan': 1000,
-    'blackops': 400,
+    'carrier': 1500,
+    'dreadnought': 1500,
+    'industrial': 1500,
+    'jumpfreighter': 5000,
+    'supercarrier': 1500,
+    'titan': 1500,
+    'blackops': 450,
 }
 
 
