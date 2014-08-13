@@ -214,6 +214,12 @@ class DropBot(ClientXMPP):
     def cmd_dodixie(self, args, msg):
         return self._system_price(args, msg, 'Dodixie', 30002659)
 
+    def cmd_hedgp(self, args, msg):
+        return self._system_price(args, msg, 'HED-GP', 30001161)
+
+    def cmd_ge8(self, args, msg):
+        return self._system_price(args, msg, 'GE-8JV', 30001198)
+
     def cmd_redditimg(self, args, msg):
         """Shows a random picture from imgur.com reddit section"""
         if len(args) == 0:
