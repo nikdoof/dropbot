@@ -7,15 +7,20 @@ try:
 except ImportError:
     from distutils.core import setup
 
-
 readme = open('README.md').read()
 
 requirements = [
-    # TODO: put package requirements here
+    'sleekxmpp==1.3.1',
+    'eveapi==1.2.6',
+    'redis==2.10.2',
+    'requests==2.3.0',
+    'humanize==0.5',
+    'dnspython==1.11.1',
+    'networkx==1.9',
 ]
 
 test_requirements = [
-    # TODO: put package test requirements here
+    'mock==1.0.1',
 ]
 
 setup(

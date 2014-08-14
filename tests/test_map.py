@@ -24,6 +24,9 @@ class MapTestCase(TestCase):
         self.assertEquals(len(self.map.get_systems('Ji')), 14)
         self.assertEquals(len(self.map.get_systems('J')), 576)
         self.assertEquals(len(self.map.get_systems('123435345345')), 0)
+        self.assertEquals(len(self.map.get_systems('jita')), 1)
+        self.assertEquals(len(self.map.get_systems('JITA')), 1)
+        self.assertEquals(len(self.map.get_systems('JiTa')), 1)
 
     def test_system_distance(self):
         self.assertEqual(self.map.system_distance(30000142, 30000144), 2.10268108033618)

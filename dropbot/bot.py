@@ -21,7 +21,7 @@ market_systems = [
 
 
 class DropBot(ClientXMPP):
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         self.rooms = kwargs.pop('rooms', [])
         self.nickname = kwargs.pop('nickname', 'Dropbot')
         self.cmd_prefix = kwargs.pop('cmd_prefix', '!')
@@ -31,7 +31,7 @@ class DropBot(ClientXMPP):
         self.redis_conn = Redis()
         self.map = Map.from_json(pkgutil.get_data('dropbot', 'data/map.json'))
 
-        super(DropBot, self).__init__(**kwargs)
+        super(DropBot, self).__init__(*args, **kwargs)
         self.register_plugin('xep_0030')  # Service Discovery
         self.register_plugin('xep_0045')  # Multi-User Chat
         self.register_plugin('xep_0199')  # XMPP Ping
