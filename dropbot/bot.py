@@ -220,6 +220,9 @@ class DropBot(ClientXMPP):
     def cmd_ge8(self, args, msg):
         return self._system_price(args, msg, 'GE-8JV', 30001198)
 
+    def cmd_r(self, args, msg):
+        return self.cmd_redditimg(args, msg)
+
     def cmd_redditimg(self, args, msg):
         """Shows a random picture from imgur.com reddit section"""
         if len(args) == 0:
