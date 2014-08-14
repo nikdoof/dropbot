@@ -1,6 +1,8 @@
 dropbot
 =======
 
+[![wercker status](https://app.wercker.com/status/76f99d586d9f2fcd532e31fb0de2ab6c/m "wercker status")](https://app.wercker.com/project/bykey/76f99d586d9f2fcd532e31fb0de2ab6c)
+
 A XMPP bot to provide simple services to NOG8S and Predditors in general
 
 Setup

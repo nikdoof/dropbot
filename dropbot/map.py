@@ -113,7 +113,10 @@ class Map(networkx.Graph):
 
     def get_system_name(self, system_id):
         """Returns the name of the provided system id"""
-        return self.node[system_id]['name']
+        try:
+            return self.node[system_id]['name']
+        except KeyError:
+            pass
 
     def get_system_id(self, name):
         """Returns the system id of the named system"""

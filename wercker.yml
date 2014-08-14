@@ -1,0 +1,12 @@
+box: wercker/python
+build:
+  steps:
+    - virtualenv:
+        name: Setup virtual environment
+    - pip-install:
+        name: Install requirements
+        auto_run_wheel: True
+    - script:
+        name: Run unit testing
+        code: |
+          python setup.py test
