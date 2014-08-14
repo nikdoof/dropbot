@@ -114,7 +114,9 @@ class DropBot(ClientXMPP):
             if item.lower() == 'plex':
                 item = '30 Day'
             types = dict([(i, v) for i, v in self.types.iteritems() if item.lower() in v.lower()])
-            if len(types) > 1:
+            if len(types) == 0:
+                return "No items named {} found".format(item)
+            elif len(types) > 1:
                 for i, v in types.iteritems():
                     if item.lower() == v.lower():
                         return (i, v)
