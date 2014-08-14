@@ -108,6 +108,24 @@ class DropBot(ClientXMPP):
         else:
             return systems[0]
 
+    def _item_picker(self, item):
+            if item.strip() == '':
+                return 'Usage: !price <item>'
+            if item.lower() == 'plex':
+                item = '30 Day'
+            types = dict([(i, v) for i, v in self.types.iteritems() if item.lower() in v.lower()])
+            if len(types) > 1:
+                for i, v in types.iteritems():
+                    if item.lower() == v.lower():
+                        return (i, v)
+                else:
+                    if len(types) > 10:
+                        return "More than 10 items found, please narrow down what you want."
+                    return "Did you mean: {}?".format(
+                        ', '.join(types.itervalues())
+                    )
+            return types.popitem()
+
     def _get_evecentral_price(self, type_id, system_id):
         try:
             resp = requests.get('http://api.eve-central.com/api/marketstat?typeid={}&usesystem={}'.format(type_id, system_id))
@@ -120,36 +138,22 @@ class DropBot(ClientXMPP):
 
     def _system_price(self, args, msg, system, system_id):
         item = ' '.join(args)
-        if item.strip() == '':
-            return 'Usage: !{} <item>'.format(system.lower())
-        if item.lower() == 'plex':
-            item = '30 Day'
-        types = dict([(i, v) for i, v in self.types.iteritems() if item.lower() in v.lower()])
-        if len(types) > 1:
-            for i, v in types.iteritems():
-                if item.lower() == v.lower():
-                    typeid, name = i, v
-                    break
-            else:
-                if len(types) > 10:
-                    return "More than 10 items found, please narrow down what you want."
-                return "Did you mean: {}?".format(
-                    ', '.join(types.itervalues())
-                )
-        else:
-            typeid, name = types.popitem()
+        res = self._item_picker(item)
+        if isinstance(res, basestring):
+            return res
+        type_id, type_name = res
 
         try:
-            resp = requests.get('http://api.eve-central.com/api/marketstat?typeid={}&usesystem={}'.format(typeid, system_id))
+            resp = requests.get('http://api.eve-central.com/api/marketstat?typeid={}&usesystem={}'.format(type_id, system_id))
             root = ElementTree.fromstring(resp.content)
         except:
-            return "An error occurred tying to get the price for {}".format(name)
+            return "An error occurred tying to get the price for {}".format(type_name)
 
         return "{} @ {} | Sell: {} | Buy: {}".format(
-            name,
+            type_name,
             system,
-            intcomma(float(root.findall("./marketstat/type[@id='{}']/sell/min".format(typeid))[0].text)),
-            intcomma(float(root.findall("./marketstat/type[@id='{}']/buy/max".format(typeid))[0].text)),
+            intcomma(float(root.findall("./marketstat/type[@id='{}']/sell/min".format(type_id))[0].text)),
+            intcomma(float(root.findall("./marketstat/type[@id='{}']/buy/max".format(type_id))[0].text)),
         )
 
     # Commands
@@ -159,26 +163,12 @@ class DropBot(ClientXMPP):
             ', '.join([self.cmd_prefix + x[4:] for x in dir(self) if x[:4] == 'cmd_' and x not in self.hidden_commands]),
         )
 
-    def cmd_price(self, args, msg):
+    def cmd_bestprice(self, args, msg):
         item = ' '.join(args)
-        if item.strip() == '':
-            return 'Usage: !price <item>'
-        if item.lower() == 'plex':
-            item = '30 Day'
-        types = dict([(i, v) for i, v in self.types.iteritems() if item.lower() in v.lower()])
-        if len(types) > 1:
-            for i, v in types.iteritems():
-                if item.lower() == v.lower():
-                    type_id, type_name = i, v
-                    break
-            else:
-                if len(types) > 10:
-                    return "More than 10 items found, please narrow down what you want."
-                return "Did you mean: {}?".format(
-                    ', '.join(types.itervalues())
-                )
-        else:
-            type_id, type_name = types.popitem()
+        res = self._item_picker(item)
+        if isinstance(res, basestring):
+            return res
+        type_id, type_name = res
 
         min_sell = 0
         max_buy = 0
@@ -187,38 +177,54 @@ class DropBot(ClientXMPP):
 
         for name, sys_id in market_systems:
             sell, buy = self._get_evecentral_price(type_id, sys_id)
-            print name, sell, buy
             if (sell < min_sell or min_sell == 0) and sell > 0:
                 min_sell = sell
                 sell_sys = name
             if buy > max_buy:
                 max_buy = buy
                 buy_sys = name
-
-        print min_sell
         return '{}\nBest Sell: {} @ {} ISK\nBest Buy: {} @ {} ISK'.format(
             type_name,
             sell_sys, intcomma(min_sell),
             buy_sys, intcomma(max_buy)
         )
 
+    def cmd_price(self, args, msg):
+        if len(args) < 2:
+            return '!price <system name> <item>'
+        item = ' '.join(args[1:])
+        system_id = self._system_picker(args[0])
+        if isinstance(system_id, basestring):
+            return system_id
+        item = self._item_picker(item)
+        if isinstance(item, basestring):
+            return item
+        type_id, type_name = item
+        sell, buy = self._get_evecentral_price(type_id, system_id)
+        return '{} @ {} | Sell {} | Buy: {}'.format(
+            type_name,
+            self.map.get_system_name(system_id),
+            intcomma(sell),
+            intcomma(buy)
+        )
+
     def cmd_jita(self, args, msg):
-        return self._system_price(args, msg, 'Jita', 30000142)
+        return self.cmd_price(['Jita'] + args, msg)
 
     def cmd_amarr(self, args, msg):
-        return self._system_price(args, msg, 'Amarr', 30002187)
+        return self.cmd_price(['Amarr'] + args, msg)
 
     def cmd_rens(self, args, msg):
-        return self._system_price(args, msg, 'Rens', 30002510)
+        return self.cmd_price(['Rens'] + args, msg)
 
     def cmd_dodixie(self, args, msg):
-        return self._system_price(args, msg, 'Dodixie', 30002659)
+        return self.cmd_price(['Dodixie'] + args, msg)
 
     def cmd_hedgp(self, args, msg):
-        return self._system_price(args, msg, 'HED-GP', 30001161)
+        return self.cmd_price(['HED-GP'] + args, msg)
 
     def cmd_ge8(self, args, msg):
-        return self._system_price(args, msg, 'GE-8JV', 30001198)
+        return self.cmd_price(['GE-8JV'] + args, msg)
 
     def cmd_r(self, args, msg):
         return self.cmd_redditimg(args, msg)
