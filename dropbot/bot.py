@@ -2,6 +2,7 @@ from xml.etree import ElementTree
 import pkgutil
 from json import loads as base_loads
 from random import choice
+import logging
 
 from sleekxmpp import ClientXMPP
 from redis import Redis
@@ -73,7 +74,11 @@ class DropBot(ClientXMPP):
 
         # Call the command
         if hasattr(self, 'cmd_%s' % cmd):
-            resp = getattr(self, 'cmd_%s' % cmd)(args, msg)
+            try:
+                resp = getattr(self, 'cmd_%s' % cmd)(args, msg)
+            except:
+                resp = 'Oops, something went wrong...'
+                logging.getLogger(__name__).exception('Error handling command')
             if resp:
                 if isinstance(resp, tuple) and len(resp) == 2:
                     bdy, html = resp
@@ -90,7 +95,11 @@ class DropBot(ClientXMPP):
 
         # Call the command
         if hasattr(self, 'cmd_%s' % cmd):
-            resp = getattr(self, 'cmd_%s' % cmd)(args, msg)
+            try:
+                resp = getattr(self, 'cmd_%s' % cmd)(args, msg)
+            except:
+                resp = 'Oops, something went wrong...'
+                logging.getLogger(__name__).exception('Error handling command')
             if resp:
                 if isinstance(resp, tuple) and len(resp) == 2:
                     bdy, html = resp
@@ -464,9 +473,9 @@ class DropBot(ClientXMPP):
             kill_types[kill['victim']['shipTypeID']] += 1
             sum_value += float(kill['zkb']['totalValue'])
 
-        return '{}, {} kill(s) ({} ISK) in the last week:\n{}'.format(
+        return '{}, {} kill(s) ({} ISK) in the last week\nActive Systems: {}'.format(
             char_name,
             len(res),
             intcomma(sum_value),
-            ', '.join(['{} x {}'.format(v, self.types[unicode(k)]) for k, v in kill_types.iteritems()])
+            ', '.join(set([self.map.nodes[int(x['solarSystemID'])] for x in res]))
         )
