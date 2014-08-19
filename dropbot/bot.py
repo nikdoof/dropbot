@@ -465,7 +465,7 @@ class DropBot(ClientXMPP):
 
         headers, res = ZKillboard().characterID(char_id).kills().pastSeconds(60 * 60 * 24 * 7).get()
 
-        from collections import defaultdict
+        from collections import defaultdict, Counter
 
         kill_types = defaultdict(int)
         ship_types = defaultdict(int)
@@ -482,11 +482,11 @@ class DropBot(ClientXMPP):
         if len(res) == 0:
             return '{} has had no kills in the last week'.format(char_name)
 
-        return '{}, {} kill(s) ({} ISK) in the last week\nActive Systems: {}\nActive Ship Types: {}\nAssociates With: {}'.format(
+        return '{}, {} kill(s) ({} ISK) in the last week\nActive Systems: {}\nTop 5 Ship: {}\nTop 5 Associates: {}'.format(
             char_name,
             len(res),
             intcomma(sum_value),
             ', '.join(set([self.map.node[int(x['solarSystemID'])]['name'] for x in res])),
-            ', '.join(set([self.types[unicode(x)] for x in ship_types.keys()])),
-            ', '.join(set([x for x in alli_assoc.keys() if x.strip() != '']))
+            ', '.join(set(['{} ({})'.format(self.types[unicode(x)], y) for x, y in Counter(ship_types).most_common(5)])),
+            ', '.join(set([x for x, y in Counter(alli_assoc).most_common(5) if x.strip() != '']))
         )
