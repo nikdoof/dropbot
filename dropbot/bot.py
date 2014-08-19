@@ -468,5 +468,5 @@ class DropBot(ClientXMPP):
             char_name,
             len(res),
             intcomma(sum_value),
-            '\n'.join(['{} x {}'.format(v, self.types[unicode(k)]) for k, v in kill_types.iteritems()])
+            ', '.join(['{} x {}'.format(v, self.types[unicode(k)]) for k, v in kill_types.iteritems()])
         )
