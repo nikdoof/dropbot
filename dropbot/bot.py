@@ -1,12 +1,15 @@
 from xml.etree import ElementTree
+import pkgutil
+from json import loads as base_loads
+from random import choice
 
 from sleekxmpp import ClientXMPP
 from redis import Redis
 import requests
 from humanize import intcomma
-import pkgutil
-from json import loads as base_loads
-from random import choice
+from pyzkb import ZKillboard
+from eveapi import EVEAPIConnection
+
 from dropbot.map import Map, base_range, ship_class_to_range
 
 
@@ -439,3 +442,31 @@ class DropBot(ClientXMPP):
             )
         else:
             return 'No route found'
+
+    def cmd_id(self, args, msg):
+        if len(args) == 0:
+            return '!id <character name>'
+        char_name = ' '.join(args)
+
+        result = EVEAPIConnection().eve.CharacterID(names=char_name)
+        if len(result.characters) == 0:
+            return 'Unknown character {}'.format(char_name)
+        char_name = result.characters[0].name
+        char_id = result.characters[0].characterID
+
+        headers, res = ZKillboard().characterID(char_id).kills().pastSeconds(60 * 60 * 24 * 7).get()
+
+        from collections import defaultdict
+
+        kill_types = defaultdict(int)
+        sum_value = 0.0
+        for kill in res:
+            kill_types[kill['victim']['shipTypeID']] += 1
+            sum_value += float(kill['zkb']['totalValue'])
+
+        return '{}, {} kill(s) ({} ISK) in the last week:\n{}'.format(
+            char_name,
+            len(res),
+            intcomma(sum_value),
+            '\n'.join(['{} x {}'.format(v, self.types[unicode(k)]) for k, v in kill_types.iteritems()])
+        )
