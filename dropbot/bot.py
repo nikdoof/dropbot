@@ -468,14 +468,25 @@ class DropBot(ClientXMPP):
         from collections import defaultdict
 
         kill_types = defaultdict(int)
+        ship_types = defaultdict(int)
+        alli_assoc = defaultdict(int)
         sum_value = 0.0
         for kill in res:
             kill_types[kill['victim']['shipTypeID']] += 1
             sum_value += float(kill['zkb']['totalValue'])
+            for attk in kill['attackers']:
+                alli_assoc[attk['allianceName']] += 1
+                if int(attk['characterID']) == char_id:
+                    ship_types[attk['shipTypeID']] += 1
 
-        return '{}, {} kill(s) ({} ISK) in the last week\nActive Systems: {}'.format(
+        if len(res) == 0:
+            return '{} has had no kills in the last week'.format(char_name)
+
+        return '{}, {} kill(s) ({} ISK) in the last week\nActive Systems: {}\nActive Ship Types: {}\nAssociates With: {}'.format(
             char_name,
             len(res),
             intcomma(sum_value),
-            ', '.join(set([self.map.node[int(x['solarSystemID'])]['name'] for x in res]))
+            ', '.join(set([self.map.node[int(x['solarSystemID'])]['name'] for x in res])),
+            ', '.join(set([self.types[unicode(x)] for x in ship_types.keys()])),
+            ', '.join(set([x for x in alli_assoc.keys() if x.strip() != '']))
         )
