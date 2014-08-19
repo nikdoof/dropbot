@@ -477,5 +477,5 @@ class DropBot(ClientXMPP):
             char_name,
             len(res),
             intcomma(sum_value),
-            ', '.join(set([self.map.nodes[int(x['solarSystemID'])] for x in res]))
+            ', '.join(set([self.map.node[int(x['solarSystemID'])]['name'] for x in res]))
         )
