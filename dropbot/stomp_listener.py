@@ -25,8 +25,9 @@ class ZKillboardStompListener(object):
         print message
         body, html = self.bot.call_command('kill', [], None, no_url=False, raw=kill)
         text = 'New Kill: {}'.format(body)
-        for room in self.bot.rooms:
-            self.bot.send_message(room, text, mtype='groupchat')
+        if not self.bot.kills_muted:
+            for room in self.bot.rooms:
+                self.bot.send_message(room, text, mtype='groupchat')
 
 
     def connect(self, url):

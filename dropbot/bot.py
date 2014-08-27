@@ -46,6 +46,7 @@ class DropBot(ClientXMPP):
         self.last_killdate = datetime.utcnow()
         self.kill_corps = [int(x) for x in kwargs.pop('kill_corps', [])]
         self.kill_check_timeout = kwargs.pop('kill_check_timeout', 300)
+        self.kills_muted = False
 
         self.redis_pool = ConnectionPool.from_url(kwargs.pop('redis_url', 'redis://localhost:6379/0'))
         self.redis = Redis(connection_pool=self.redis_pool)
@@ -610,4 +611,11 @@ class DropBot(ClientXMPP):
             len(kill['attackers']),
             intcomma(kill['zkb']['totalValue']),
             url,
+        )
+
+    def cmd_togglekills(self, args, msg):
+        """Toggles the broadcasting of kills to MUC channels"""
+        self.kills_muted = not self.kills_muted
+        return 'Kill messages: {}'.format(
+            'muted' if self.kills_muted else 'not muted'
         )
