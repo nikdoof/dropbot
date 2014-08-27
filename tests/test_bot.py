@@ -15,7 +15,7 @@ class DropBotTestCase(TestCase):
         self.assertEquals(self.bot._system_picker('Jit'), 30000142)
         self.assertIs(type(self.bot._system_picker('J')), str)
         self.assertEqual(self.bot._system_picker('J'), 'More than 10 systems match J, please provide a more complete name')
-        self.assertEqual(self.bot._system_picker('GE-'), 'Did you mean: GGE-5Q, GE-94X, GE-8JV, IGE-NE, IGE-RI?')
+        self.assertEqual(self.bot._system_picker('GE-'), 'Did you mean: GE-94X, GE-8JV?')
         self.assertEqual(self.bot._system_picker('asdasd'), 'No systems found matching asdasd')
 
     def test_get_evecentral_price(self):

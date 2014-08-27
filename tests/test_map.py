@@ -21,8 +21,8 @@ class MapTestCase(TestCase):
 
     def test_get_systems(self):
         self.assertEquals(len(self.map.get_systems('Jita')), 1)
-        self.assertEquals(len(self.map.get_systems('Ji')), 14)
-        self.assertEquals(len(self.map.get_systems('J')), 576)
+        self.assertEquals(len(self.map.get_systems('Ji')), 7)
+        self.assertEquals(len(self.map.get_systems('J')), 162)
         self.assertEquals(len(self.map.get_systems('123435345345')), 0)
         self.assertEquals(len(self.map.get_systems('jita')), 1)
         self.assertEquals(len(self.map.get_systems('JITA')), 1)
