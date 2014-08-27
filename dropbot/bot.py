@@ -173,11 +173,26 @@ class DropBot(ClientXMPP):
     # Commands
 
     def cmd_help(self, args, msg):
-        return "Commands: {}".format(
-            ', '.join([self.cmd_prefix + x[4:] for x in dir(self) if x[:4] == 'cmd_' and x not in self.hidden_commands]),
-        )
+        if len(args) == 0:
+            return "Commands: {}".format(
+                ', '.join([self.cmd_prefix + x[4:] for x in dir(self) if x[:4] == 'cmd_' and x not in self.hidden_commands]),
+            )
+        cmd = args[0]
+        if hasattr(self, 'cmd_%s' % cmd):
+            if getattr(self, 'cmd_%s' % cmd).__doc__ is not None:
+                return '{}{}: {}'.format(
+                    self.cmd_prefix,
+                    cmd,
+                    getattr(self, 'cmd_%s' % cmd).__doc__
+                )
+            else:
+                return 'This command has no documentation'
+        else:
+            return 'Unknown command'
+
 
     def cmd_bestprice(self, args, msg):
+        """Returns the best price for an item out of the current known market hub systems"""
         item = ' '.join(args)
         res = self._item_picker(item)
         if isinstance(res, basestring):
@@ -204,6 +219,7 @@ class DropBot(ClientXMPP):
         )
 
     def cmd_price(self, args, msg):
+        """Returns the price of an item in a particular system"""
         if len(args) < 2:
             return '!price <system name> <item>'
         item = ' '.join(args[1:])
@@ -258,6 +274,7 @@ class DropBot(ClientXMPP):
             return choice(imgs)
 
     def cmd_kos(self, args, msg):
+        """Checks the CVA KOS list for a name"""
         arg = ' '.join(args)
         resp = requests.get(self.kos_url, params={
             'c': 'json',
@@ -287,6 +304,7 @@ class DropBot(ClientXMPP):
         return '\n'.join(results)
 
     def cmd_range(self, args, msg):
+        """Returns a count of the number of systems in jump range from a source system"""
         if len(args) == 0 or len(args) > 2:
             return '!range <system> <ship class>'
 
@@ -317,6 +335,7 @@ class DropBot(ClientXMPP):
         return '{} systems in JDC5 {} range of {}:\n'.format(len(systems), ship_class, self.map.get_system_name(system_id)) + '\n'.join(['{} - {}'.format(x, y) for x, y in res.items()])
 
     def cmd_route(self, args, msg):
+        """Shows the shortest route between two sytems"""
         if len(args) != 2:
             return '!route <source> <destination>'
         source, dest = args
@@ -339,6 +358,7 @@ class DropBot(ClientXMPP):
         )
 
     def cmd_addjb(self, args, msg):
+        """Adds a jumpbridge to the internal map for routing purposes"""
         if len(args) != 2:
             return '!addjb <source> <destination>'
         source, dest = args
@@ -354,6 +374,7 @@ class DropBot(ClientXMPP):
         return "Done"
 
     def cmd_mapstats(self, args, msg):
+        """Gives the current overview of the internal map"""
         return '{} systems, {} gate jumps, {} jump bridges'.format(
             len(self.map.nodes()),
             len([u for u, v, d in self.map.edges_iter(data=True) if d['link_type'] == 'gate']),
@@ -361,6 +382,7 @@ class DropBot(ClientXMPP):
         )
 
     def cmd_hit(self, args, msg):
+        """Details what class and JDC level is required to jump between two systems"""
         if len(args) != 2:
             return '!hit <source> <destination>'
         source, dest = args
@@ -401,6 +423,7 @@ class DropBot(ClientXMPP):
         )
 
     def cmd_jump(self, args, msg):
+        """Calculates the shortest jump route between two systems"""
         if len(args) < 2:
             return '!jump <source> <destination> (<ship class> <jdc level> <jfc level>)'
         elif len(args) == 2:
@@ -453,6 +476,7 @@ class DropBot(ClientXMPP):
             return 'No route found'
 
     def cmd_id(self, args, msg):
+        """Provides an overview of a character's activity in-game"""
         if len(args) == 0:
             return '!id <character name>'
         char_name = ' '.join(args)
