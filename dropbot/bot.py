@@ -481,7 +481,7 @@ class DropBot(ClientXMPP):
             return '!id <character name>'
         char_name = ' '.join(args)
 
-        result = EVEAPIConnection().eve.CharacterID(names=char_name)
+        result = EVEAPIConnection().eve.CharacterID(names=char_name.strip())
         if len(result.characters) == 0:
             return 'Unknown character {}'.format(char_name)
         char_name = result.characters[0].name
@@ -490,6 +490,7 @@ class DropBot(ClientXMPP):
         headers, res = ZKillboard().characterID(char_id).kills().pastSeconds(60 * 60 * 24 * 7).get()
 
         from collections import defaultdict, Counter
+        from operator import itemgetter
 
         kill_types = defaultdict(int)
         ship_types = defaultdict(int)
@@ -512,6 +513,6 @@ class DropBot(ClientXMPP):
             len(res),
             intcomma(sum_value),
             ', '.join(set([self.map.node[int(x['solarSystemID'])]['name'] for x in res])),
-            ', '.join(set(['{} ({})'.format(self.types[unicode(x)], y) for x, y in Counter(ship_types).most_common(5)])),
-            ', '.join(set([x for x, y in Counter(alli_assoc).most_common(5) if x.strip() != '']))
+            ', '.join(set(['{} ({})'.format(self.types[unicode(x)], y) for x, y in sorted(Counter(ship_types).most_common(5), key=itemgetter(0))])),
+            ', '.join(set([x for x, y in sorted(Counter(alli_assoc).most_common(5), key=itemgetter(0)) if x.strip() != '']))
         )
