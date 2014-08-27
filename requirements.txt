@@ -6,3 +6,4 @@ humanize==0.5
 dnspython==1.11.1
 networkx==1.9
 https://github.com/nikdoof/pyzkb/archive/master.zip#egg=pyzkb
+stomp.py==4.0.12

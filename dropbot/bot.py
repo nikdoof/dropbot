@@ -16,6 +16,7 @@ from eveapi import EVEAPIConnection
 
 from dropbot.map import Map, base_range, ship_class_to_range
 from dropbot.utils import EVEAPIRedisCache
+from dropbot.stomp_listener import ZKillboardStompListener
 
 urlparse.uses_netloc.append("redis")
 
@@ -63,6 +64,9 @@ class DropBot(ClientXMPP):
         self.add_event_handler('session_start', self.handle_session_start)
         self.add_event_handler('message', self.handle_message)
 
+        # STOMP listener
+        self.stomp = ZKillboardStompListener(self)
+
     # Reference Data
 
     @property
@@ -83,7 +87,7 @@ class DropBot(ClientXMPP):
             self.plugin['xep_0045'].joinMUC(room, self.nickname, wait=True)
 
         # Start the killchecker
-        self._get_kills()
+        self.stomp.connect('tcp://eve-kill.net:61613')
 
     def call_command(self, command, *args, **kwargs):
         if hasattr(self, 'cmd_%s' % command):
@@ -195,22 +199,6 @@ class DropBot(ClientXMPP):
             intcomma(float(root.findall("./marketstat/type[@id='{}']/sell/min".format(type_id))[0].text)),
             intcomma(float(root.findall("./marketstat/type[@id='{}']/buy/max".format(type_id))[0].text)),
         )
-
-    def _get_kills(self):
-        secs = (datetime.utcnow() - self.last_killdate).total_seconds()
-        if secs >= self.kill_check_timeout:
-            for corp_id in self.kill_corps:
-                headers, kills = ZKillboard().corporationID(corp_id).pastSeconds(int(secs)).kills().get()
-                res = []
-                for kill in kills:
-                    body, html = self.call_command('kill', [kill['killID']], None, no_url=False)
-                    res.append(body)
-            if len(res):
-                text = 'New Kills:\n{}'.format('\n'.join(res))
-                for room in self.rooms:
-                    self.send_message(room, text, mtype='groupchat')
-        self.last_killdate = datetime.utcnow()
-        self.schedule('zkb_check', self.kill_check_timeout, self._get_kills)
 
     def get_eveapi(self):
         return EVEAPIConnection(cacheHandler=EVEAPIRedisCache(self.redis))
@@ -589,21 +577,26 @@ class DropBot(ClientXMPP):
             ', '.join([x for x, y in alli_assoc])
         )
 
-    def cmd_kill(self, args, msg, no_url=False):
+    def cmd_kill(self, args, msg, no_url=False, raw=None):
         """Returns a summary of a zKillboard killmail"""
-        if len(args) == 0:
-            return '!kill <Kill ID/zKillboard URL>'
-        kill_id = args[0]
-        try:
-            kill_id = int(kill_id)
-        except ValueError:
-            m = zkillboard_regex.match(kill_id)
-            if m:
-                kill_id = m.groupdict()['killID']
-            else:
-                return 'Invalid kill ID'
-        headers, data = ZKillboard().killID(kill_id).get()
-        kill = data[0]
+        if not raw:
+            if len(args) == 0:
+                return '!kill <Kill ID/zKillboard URL>'
+            kill_id = args[0]
+            try:
+                kill_id = int(kill_id)
+            except ValueError:
+                m = zkillboard_regex.match(kill_id)
+                if m:
+                    kill_id = m.groupdict()['killID']
+                else:
+                    return 'Invalid kill ID'
+
+            headers, data = ZKillboard().killID(kill_id).get()
+            kill = data[0]
+        else:
+            kill = raw
+            kill_id = raw['killID']
 
         if no_url:
             url = ''
