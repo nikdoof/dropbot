@@ -501,8 +501,9 @@ class DropBot(ClientXMPP):
             for attk in kill['attackers']:
                 alli_assoc[attk['allianceName']] += 1
                 if int(attk['characterID']) == char_id:
-                    ship_types[attk['shipTypeID']] += 1
-
+                    ship_type_id = int(attk['shipTypeID'])
+                    if ship_type_id > 0:
+                        ship_types[ship_type_id] += 1
         if len(res) == 0:
             return '{} has had no kills in the last week'.format(char_name)
 
