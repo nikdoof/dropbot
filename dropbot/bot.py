@@ -91,7 +91,7 @@ class DropBot(ClientXMPP):
                     self.send_message(msg['from'].bare, mbody=bdy, mhtml=html, mtype='groupchat')
         else:
             for match in zkillboard_regex.finditer(msg['body']):
-                resp = self.cmd_kill([match.groupdict()['killID']], msg)
+                resp = self.cmd_kill([match.groupdict()['killID']], msg, no_url=True)
                 if len(resp) == 2:
                     body, html = resp
                 else:
@@ -538,22 +538,32 @@ class DropBot(ClientXMPP):
             ', '.join([x for x, y in alli_assoc])
         )
 
-    def cmd_kill(self, args, msg):
+    def cmd_kill(self, args, msg, no_url=False):
         """Returns a summary of a zKillboard killmail"""
         if len(args) == 0:
-            return '!kill <Kill ID>'
+            return '!kill <Kill ID/zKillboard URL>'
         kill_id = args[0]
         try:
             kill_id = int(kill_id)
         except ValueError:
-            return 'Invalid kill ID'
+            m = zkillboard_regex.match(kill_id)
+            if m:
+                kill_id = m.groupdict()['killID']
+            else:
+                return 'Invalid kill ID'
         headers, data = ZKillboard().killID(kill_id).get()
         kill = data[0]
 
-        return '{} ({}) in {}, {} attacker(s), {} ISK lost.'.format(
+        if no_url:
+            url = ''
+        else:
+            url = ' - https://zkillboard.com/kill/{}/'.format(kill_id)
+
+        return '{} ({}) in {}, {} attacker(s), {} ISK lost{}'.format(
             kill['victim']['characterName'],
             self.types[unicode(kill['victim']['shipTypeID'])],
             self.map.node[int(kill['solarSystemID'])]['name'],
             len(kill['attackers']),
             intcomma(kill['zkb']['totalValue']),
+            url,
         )
