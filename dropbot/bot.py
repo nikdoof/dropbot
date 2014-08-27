@@ -482,37 +482,46 @@ class DropBot(ClientXMPP):
         char_name = ' '.join(args)
 
         result = EVEAPIConnection().eve.CharacterID(names=char_name.strip())
-        if len(result.characters) == 0:
-            return 'Unknown character {}'.format(char_name)
         char_name = result.characters[0].name
         char_id = result.characters[0].characterID
+
+        if char_id == 0:
+            return 'Unknown character {}'.format(char_name)
 
         headers, res = ZKillboard().characterID(char_id).kills().pastSeconds(60 * 60 * 24 * 7).get()
 
         from collections import defaultdict, Counter
-        from operator import itemgetter
 
         kill_types = defaultdict(int)
         ship_types = defaultdict(int)
         alli_assoc = defaultdict(int)
         sum_value = 0.0
         for kill in res:
-            kill_types[kill['victim']['shipTypeID']] += 1
+            kill_type_id = int(kill['victim']['shipTypeID'])
+            if kill_type_id > 0:
+                kill_types[self.types[unicode(kill_type_id)]] += 1
             sum_value += float(kill['zkb']['totalValue'])
             for attk in kill['attackers']:
-                alli_assoc[attk['allianceName']] += 1
+                if attk['allianceName'].strip() != '' and attk['allianceName'] is not None:
+                    alli_assoc[attk['allianceName']] += 1
                 if int(attk['characterID']) == char_id:
                     ship_type_id = int(attk['shipTypeID'])
                     if ship_type_id > 0:
-                        ship_types[ship_type_id] += 1
+                        ship_types[self.types[unicode(ship_type_id)]] += 1
+                    break
         if len(res) == 0:
             return '{} has had no kills in the last week'.format(char_name)
 
-        return '{}, {} kill(s) ({} ISK) in the last week\nActive Systems: {}\nTop 5 Ship: {}\nTop 5 Associates: {}'.format(
+        kill_types = Counter(kill_types).most_common(5)
+        ship_types = Counter(ship_types).most_common(5)
+        alli_assoc = Counter(alli_assoc).most_common(5)
+
+        return '{}, {} kill(s) ({} ISK) in the last week\nActive Systems: {}\nTop 5 Killed Types: {}\nTop 5 Ship: {}\nTop 5 Associates: {}'.format(
             char_name,
             len(res),
             intcomma(sum_value),
             ', '.join(set([self.map.node[int(x['solarSystemID'])]['name'] for x in res])),
-            ', '.join(set(['{} ({})'.format(self.types[unicode(x)], y) for x, y in sorted(Counter(ship_types).most_common(5), key=itemgetter(0))])),
-            ', '.join(set([x for x, y in sorted(Counter(alli_assoc).most_common(5), key=itemgetter(0)) if x.strip() != '']))
+            ', '.join(['{} ({})'.format(x, y) for x, y in kill_types]),
+            ', '.join(['{} ({})'.format(x, y) for x, y in ship_types]),
+            ', '.join([x for x, y in alli_assoc])
         )
