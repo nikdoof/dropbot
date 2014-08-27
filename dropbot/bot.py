@@ -10,7 +10,7 @@ import urlparse
 from sleekxmpp import ClientXMPP
 from redis import Redis, ConnectionPool
 import requests
-from humanize import intcomma, naturaltime
+from humanize import intcomma, naturaltime, intword
 from pyzkb import ZKillboard
 from eveapi import EVEAPIConnection
 
@@ -65,9 +65,6 @@ class DropBot(ClientXMPP):
         self.add_event_handler('session_start', self.handle_session_start)
         self.add_event_handler('message', self.handle_message)
 
-        # STOMP listener
-        self.stomp = ZKillboardStompListener(self)
-
     # Reference Data
 
     @property
@@ -88,6 +85,7 @@ class DropBot(ClientXMPP):
             self.plugin['xep_0045'].joinMUC(room, self.nickname, wait=True)
 
         # Start the killchecker
+        self.stomp = ZKillboardStompListener(self)
         self.stomp.connect('tcp://eve-kill.net:61613')
 
     def call_command(self, command, *args, **kwargs):
@@ -102,7 +100,10 @@ class DropBot(ClientXMPP):
                     return resp
                 else:
                     return resp, None
-        raise UnknownCommandException
+            else:
+                return None, None
+        else:
+            raise UnknownCommandException
 
     def handle_message(self, msg):
         args = msg['body'].split(' ')
@@ -604,8 +605,13 @@ class DropBot(ClientXMPP):
         else:
             url = ' - https://zkillboard.com/kill/{}/'.format(kill_id)
 
+        # Ignore kills over an hour old
         age = (datetime.utcnow() - datetime.strptime(kill['killTime'], '%Y-%m-%d %H:%M:%S'))
         if age.total_seconds() > 60 * 60:
+            return
+
+        # Drop kills less than 1mil
+        if float(kill['zkb']['totalValue']) < 1000000:
             return
 
         return '{} ({}) in {}, {}, {} attacker(s), {} ISK lost{}'.format(
@@ -614,7 +620,7 @@ class DropBot(ClientXMPP):
             self.map.node[int(kill['solarSystemID'])]['name'],
             naturaltime(age),
             len(kill['attackers']),
-            intcomma(kill['zkb']['totalValue']),
+            intword(float(kill['zkb']['totalValue'])),
             url,
         )
 

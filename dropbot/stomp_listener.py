@@ -4,7 +4,7 @@ import json
 
 urlparse.uses_netloc.append('tcp')
 
-class ZKillboardStompListener(object):
+class ZKillboardStompListener(stomp.listener.ConnectionListener):
 
     def __init__(self, bot):
         self.bot = bot
@@ -37,11 +37,11 @@ class ZKillboardStompListener(object):
                 for room in self.bot.rooms:
                     self.bot.send_message(room, text, mtype='groupchat')
 
-
     def connect(self, url):
+        self.url = url
         url = urlparse.urlparse(url)
         self.conn = stomp.Connection([(url.hostname, url.port)])
         self.conn.set_listener('', self)
         self.conn.start()
         self.conn.connect('guest', 'guest')
-        self.conn.subscribe(destination='/topic/kills', ack='auto', id=1)
+        self.conn.subscribe('/topic/kills', id='dropbot')
