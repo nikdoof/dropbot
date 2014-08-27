@@ -44,7 +44,7 @@ class DropBot(ClientXMPP):
         self.kos_url = kwargs.pop('kos_url', 'http://kos.cva-eve.org/api/')
         self.hidden_commands = ['cmd_prefix']
         self.last_killdate = datetime.utcnow()
-        self.kill_corps = kwargs.pop('kill_corps', [])
+        self.kill_corps = [int(x) for x in kwargs.pop('kill_corps', [])]
         self.kill_check_timeout = kwargs.pop('kill_check_timeout', 300)
 
         self.redis_pool = ConnectionPool.from_url(kwargs.pop('redis_url', 'redis://localhost:6379/0'))
