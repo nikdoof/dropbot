@@ -124,7 +124,9 @@ class DropBot(ClientXMPP):
                     body, html = self.call_command('kill', [kill_id], msg, no_url=True)
                     response_lines.append(body)
                     seen.add(kill_id)
-                msg.reply('\n'.join(response_lines)).send()
+                response_lines = [x for x in response_lines if x]
+                if len(response_lines):
+                    msg.reply('\n'.join(response_lines)).send()
                 return
             # Strip the cmd_prefix
             cmd = cmd[1:]
@@ -605,13 +607,13 @@ class DropBot(ClientXMPP):
         else:
             url = ' - https://zkillboard.com/kill/{}/'.format(kill_id)
 
-        # Ignore kills over an hour old
+        # Ignore kills over an hour old if they're from stomp
         age = (datetime.utcnow() - datetime.strptime(kill['killTime'], '%Y-%m-%d %H:%M:%S'))
-        if age.total_seconds() > 60 * 60:
+        if age.total_seconds() > 60 * 60 and raw:
             return
 
-        # Drop kills less than 1mil
-        if float(kill['zkb']['totalValue']) < 1000000:
+        # Drop kills less than 1mil if they've come from stomp
+        if float(kill['zkb']['totalValue']) < 1000000 and raw:
             return
 
         return '{} ({}) in {}, {}, {} attacker(s), {} ISK lost{}'.format(
