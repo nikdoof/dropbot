@@ -15,19 +15,27 @@ class ZKillboardStompListener(object):
 
     def on_message(self, headers, message):
         kill = json.loads(message)
+        kill_type = None
+
+        # Tag kills
         for attacker in kill['attackers']:
             if int(attacker['corporationID']) in self.bot.kill_corps:
+                kill_type = 'KILL'
                 break
-        else:
-            if int(kill['victim']['corporationID']) not in self.bot.kill_corps:
-                return
 
-        print message
+        # Tag losses
+        if int(kill['victim']['corporationID']) in self.bot.kill_corps:
+            kill_type = 'LOSS'
+
+        if not kill_type:
+            return
+
         body, html = self.bot.call_command('kill', [], None, no_url=False, raw=kill)
-        text = 'New Kill: {}'.format(body)
-        if not self.bot.kills_muted:
-            for room in self.bot.rooms:
-                self.bot.send_message(room, text, mtype='groupchat')
+        if body:
+            text = '[{}] {}'.format(kill_type, body)
+            if not self.bot.kills_muted:
+                for room in self.bot.rooms:
+                    self.bot.send_message(room, text, mtype='groupchat')
 
 
     def connect(self, url):

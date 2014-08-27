@@ -10,7 +10,7 @@ import urlparse
 from sleekxmpp import ClientXMPP
 from redis import Redis, ConnectionPool
 import requests
-from humanize import intcomma
+from humanize import intcomma, naturaltime
 from pyzkb import ZKillboard
 from eveapi import EVEAPIConnection
 
@@ -604,10 +604,15 @@ class DropBot(ClientXMPP):
         else:
             url = ' - https://zkillboard.com/kill/{}/'.format(kill_id)
 
-        return '{} ({}) in {}, {} attacker(s), {} ISK lost{}'.format(
+        age = (datetime.utcnow() - datetime.strptime(kill['killTime'], '%Y-%m-%d %H:%M:%S'))
+        if age.total_seconds() > 60 * 60:
+            return
+
+        return '{} ({}) in {}, {}, {} attacker(s), {} ISK lost{}'.format(
             kill['victim']['characterName'],
             self.types[unicode(kill['victim']['shipTypeID'])],
             self.map.node[int(kill['solarSystemID'])]['name'],
+            naturaltime(age),
             len(kill['attackers']),
             intcomma(kill['zkb']['totalValue']),
             url,
