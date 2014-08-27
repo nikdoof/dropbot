@@ -393,6 +393,19 @@ class DropBot(ClientXMPP):
         self.map.add_jumpbridge(source, dest)
         return "Done"
 
+    def cmd_listjbs(self, args, msg):
+        """List all known jumpbridges stored in the map"""
+        resp_lines = []
+        for u, v, d in self.map.edges_iter(data=True):
+            if d['link_type'] == 'bridge':
+                line = '{} <-> {} ({}ly)'.format(
+                    self.map.get_system_name(u),
+                    self.map.get_system_name(v),
+                    round(self.map.system_distance(u, v), 2),
+                )
+                resp_lines.append(line)
+        return '\n'.join(resp_lines)
+
     def cmd_mapstats(self, args, msg):
         """Gives the current overview of the internal map"""
         return '{} systems, {} gate jumps, {} jump bridges'.format(
