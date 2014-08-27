@@ -59,3 +59,6 @@ target/
 
 # EVE
 eve.db
+
+# Vagrant
+.vagrant/

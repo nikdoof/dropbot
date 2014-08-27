@@ -33,7 +33,7 @@ def main():
         # Parse the environment for config
         config = dict([(k[8:].lower(), v) for k, v in os.environ.items() if 'DROPBOT_' in k])
         # Split out array type configs
-        for key in ['rooms', 'admins']:
+        for key in ['rooms', 'admins', 'kill_corps']:
             if key in config:
                 config[key] = [x.strip() for x in config[key].split(',')]
     elif opts.config.lower().startswith('http'):

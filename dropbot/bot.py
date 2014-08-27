@@ -1,19 +1,23 @@
+from datetime import datetime
 from xml.etree import ElementTree
 import pkgutil
 from json import loads as base_loads
 from random import choice
 import logging
 import re
+import urlparse
 
 from sleekxmpp import ClientXMPP
-from redis import Redis
+from redis import Redis, ConnectionPool
 import requests
 from humanize import intcomma
 from pyzkb import ZKillboard
 from eveapi import EVEAPIConnection
 
 from dropbot.map import Map, base_range, ship_class_to_range
+from dropbot.utils import EVEAPIRedisCache
 
+urlparse.uses_netloc.append("redis")
 
 market_systems = [
     ('Jita', 30000142),
@@ -38,8 +42,12 @@ class DropBot(ClientXMPP):
         self.cmd_prefix = kwargs.pop('cmd_prefix', '!')
         self.kos_url = kwargs.pop('kos_url', 'http://kos.cva-eve.org/api/')
         self.hidden_commands = ['cmd_prefix']
+        self.last_killdate = datetime.utcnow()
+        self.kill_corps = kwargs.pop('kill_corps', [])
+        self.kill_check_timeout = kwargs.pop('kill_check_timeout', 300)
 
-        self.redis_conn = Redis()
+        self.redis_pool = ConnectionPool.from_url(kwargs.pop('redis_url', 'redis://localhost:6379/0'))
+        self.redis = Redis(connection_pool=self.redis_pool)
         self.map = Map.from_json(pkgutil.get_data('dropbot', 'data/map.json'))
 
         super(DropBot, self).__init__(*args, **kwargs)
@@ -73,6 +81,9 @@ class DropBot(ClientXMPP):
         # Join the defined MUC rooms
         for room in self.rooms:
             self.plugin['xep_0045'].joinMUC(room, self.nickname, wait=True)
+
+        # Start the killchecker
+        self._get_kills()
 
     def call_command(self, command, *args, **kwargs):
         if hasattr(self, 'cmd_%s' % command):
@@ -184,6 +195,25 @@ class DropBot(ClientXMPP):
             intcomma(float(root.findall("./marketstat/type[@id='{}']/sell/min".format(type_id))[0].text)),
             intcomma(float(root.findall("./marketstat/type[@id='{}']/buy/max".format(type_id))[0].text)),
         )
+
+    def _get_kills(self):
+        secs = (datetime.utcnow() - self.last_killdate).total_seconds()
+        if secs >= self.kill_check_timeout:
+            for corp_id in self.kill_corps:
+                headers, kills = ZKillboard().corporationID(corp_id).pastSeconds(int(secs)).kills().get()
+                res = []
+                for kill in kills:
+                    body, html = self.call_command('kill', [kill['killID']], None, no_url=False)
+                    res.append(body)
+            if len(res):
+                text = 'New Kills:\n{}'.format('\n'.join(res))
+                for room in self.rooms:
+                    self.send_message(room, text, mtype='groupchat')
+        self.last_killdate = datetime.utcnow()
+        self.schedule('zkb_check', self.kill_check_timeout, self._get_kills)
+
+    def get_eveapi(self):
+        return EVEAPIConnection(cacheHandler=EVEAPIRedisCache(self.redis))
 
     # Commands
 
@@ -514,7 +544,7 @@ class DropBot(ClientXMPP):
             return '!id <character name>'
         char_name = ' '.join(args)
 
-        result = EVEAPIConnection().eve.CharacterID(names=char_name.strip())
+        result = self.get_eveapi().eve.CharacterID(names=char_name.strip())
         char_name = result.characters[0].name
         char_id = result.characters[0].characterID
 
