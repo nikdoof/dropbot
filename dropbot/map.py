@@ -126,7 +126,7 @@ class Map(networkx.Graph):
 
     def get_systems(self, name):
         """Returns a list of systems by a partial system name"""
-        return [k for k, v in self.nodes_iter(data=True) if name.lower() in v['name'].lower()]
+        return [k for k, v in self.nodes_iter(data=True) if v['name'].lower().find(name.lower()) == 0]
                 
     def system_distance(self, source, destination):
         """Calculates the distance in ly between two systems"""
