@@ -248,12 +248,12 @@ class DropBot(ClientXMPP):
         if len(args) == 0:
             return "Usage: !redditimg <subreddit>"
         imgs = []
-        page = choice(xrange(0, 100))
-        for img in requests.get("http://imgur.com/r/%s/top/all/page/%s.json" % (args[0], page)).json()['data']:
-            resp = "%s - http://i.imgur.com/%s%s" % (img['title'], img['hash'], img['ext'])
-            if img['nsfw']:
-                resp = resp + " :nsfw:"
-            imgs.append(resp)
+        for page in range(1, 11):
+            for img in requests.get("http://imgur.com/r/%s/top/all/page/%s.json" % (args[0], page)).json()['data']:
+                resp = "%s - http://i.imgur.com/%s%s" % (img['title'], img['hash'], img['ext'])
+                if img['nsfw']:
+                    resp = resp + " :nsfw:"
+                imgs.append(resp)
         if len(imgs):
             return choice(imgs)
 
