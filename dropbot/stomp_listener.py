@@ -19,7 +19,7 @@ class ZKillboardStompListener(object):
             if int(attacker['corporationID']) in self.bot.kill_corps:
                 break
         else:
-            if kill['victim']['corporationID'] not in self.bot.kill_corps:
+            if int(kill['victim']['corporationID']) not in self.bot.kill_corps:
                 return
 
         print message
