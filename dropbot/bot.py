@@ -42,10 +42,13 @@ class DropBot(ClientXMPP):
         self.register_plugin('xep_0045')  # Multi-User Chat
         self.register_plugin('xep_0199')  # XMPP Ping
 
+        # Basic bot auto config
+        self.auto_subscribe = False
+        self.auto_authorize = True
+
         # Handlers
         self.add_event_handler('session_start', self.handle_session_start)
-        self.add_event_handler('groupchat_message', self.handle_muc_message)
-        self.add_event_handler('message', self.handle_private_message)
+        self.add_event_handler('message', self.handle_message)
 
     # Reference Data
 
@@ -58,7 +61,6 @@ class DropBot(ClientXMPP):
 
 
     # Command / Connection Handling
-
     def handle_session_start(self, event):
         self.get_roster()
         self.send_presence()
@@ -67,60 +69,50 @@ class DropBot(ClientXMPP):
         for room in self.rooms:
             self.plugin['xep_0045'].joinMUC(room, self.nickname, wait=True)
 
-    def handle_muc_message(self, msg):
-        if msg['mucnick'] == self.nickname:
-            return
-
-        if msg['body'][0] == self.cmd_prefix:
-            args = msg['body'].split(' ')
-            cmd = args[0][1:].lower()
-            args.pop(0)
-
-            # Call the command
-            if hasattr(self, 'cmd_%s' % cmd):
-                try:
-                    resp = getattr(self, 'cmd_%s' % cmd)(args, msg)
-                except:
-                    resp = 'Oops, something went wrong...'
-                    logging.getLogger(__name__).exception('Error handling command')
-                if resp:
-                    if isinstance(resp, tuple) and len(resp) == 2:
-                        bdy, html = resp
-                    else:
-                        bdy, html = resp, None
-                    self.send_message(msg['from'].bare, mbody=bdy, mhtml=html, mtype='groupchat')
-        else:
-            for match in zkillboard_regex.finditer(msg['body']):
-                resp = self.cmd_kill([match.groupdict()['killID']], msg, no_url=True)
-                if len(resp) == 2:
-                    body, html = resp
-                else:
-                    body, html = resp, None
-                self.send_message(msg['from'].bare, mbody=body, mhtml=html, mtype='groupchat')
-
-    def handle_private_message(self, msg):
-        if msg['type'] == 'groupchat':
-            return
-        args = msg['body'].split(' ')
-        cmd = args[0].lower()
-        args.pop(0)
-
-        # Call the command
-        if hasattr(self, 'cmd_%s' % cmd):
+    def call_command(self, command, *args, **kwargs):
+        if hasattr(self, 'cmd_%s' % command):
             try:
-                resp = getattr(self, 'cmd_%s' % cmd)(args, msg)
+                resp = getattr(self, 'cmd_%s' % command)(*args, **kwargs)
             except:
                 resp = 'Oops, something went wrong...'
                 logging.getLogger(__name__).exception('Error handling command')
             if resp:
                 if isinstance(resp, tuple) and len(resp) == 2:
-                    bdy, html = resp
+                    return resp
                 else:
-                    bdy, html = resp, None
-                self.send_message(msg['from'], mbody=bdy, mhtml=html, mtype=msg['type'])
+                    return resp, None
+        return None, None
+
+    def handle_message(self, msg):
+        args = msg['body'].split(' ')
+        cmd = args[0].lower()
+        args.pop(0)
+        if msg['type'] == 'groupchat':
+            if msg['mucnick'] == self.nickname:
+                return
+            if msg['body'][0] != self.cmd_prefix:
+                # If its not a command, check for ZKB urls
+                seen = set([])
+                response_lines = []
+                for match in zkillboard_regex.finditer(msg['body']):
+                    kill_id = match.groupdict()['killID']
+                    logging.info('Found Kill ID {}'.format(kill_id))
+                    if kill_id in seen:
+                        continue
+                    body, html = self.call_command('kill', [kill_id], msg, no_url=True)
+                    response_lines.append(body)
+                    seen.add(kill_id)
+                msg.reply('\n'.join(response_lines)).send()
+                return
+            # Strip the cmd_prefix
+            cmd = cmd[1:]
+
+        # Call the command
+        body, html = self.call_command(cmd, args, msg)
+        if body:
+            msg.reply(body).send()
 
     # Helpers
-
     def _system_picker(self, name):
         systems = self.map.get_systems(name)
         if len(systems) > 1:
