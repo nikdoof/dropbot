@@ -26,6 +26,11 @@ market_systems = [
 
 zkillboard_regex = re.compile(r'http(s|):\/\/zkillboard\.com\/kill\/(?P<killID>\d+)\/')
 
+
+class UnknownCommandException(Exception):
+    pass
+
+
 class DropBot(ClientXMPP):
     def __init__(self, *args, **kwargs):
         self.rooms = kwargs.pop('rooms', [])
@@ -81,7 +86,7 @@ class DropBot(ClientXMPP):
                     return resp
                 else:
                     return resp, None
-        return None, None
+        raise UnknownCommandException
 
     def handle_message(self, msg):
         args = msg['body'].split(' ')
@@ -108,9 +113,15 @@ class DropBot(ClientXMPP):
             cmd = cmd[1:]
 
         # Call the command
-        body, html = self.call_command(cmd, args, msg)
-        if body:
-            msg.reply(body).send()
+        try:
+            body, html = self.call_command(cmd, args, msg)
+        except UnknownCommandException:
+            if msg['type'] != 'groupchat':
+                msg.reply('Unknown command, use "help" to list all commands available').send()
+            pass
+        else:
+            if body:
+                msg.reply(body).send()
 
     # Helpers
     def _system_picker(self, name):
@@ -178,9 +189,14 @@ class DropBot(ClientXMPP):
 
     def cmd_help(self, args, msg):
         if len(args) == 0:
-            return "Commands: {}".format(
-                ', '.join([self.cmd_prefix + x[4:] for x in dir(self) if x[:4] == 'cmd_' and x not in self.hidden_commands]),
-            )
+            if msg['type'] == 'groupchat':
+                return "Commands: {}\nAll commands are available in private chat without the {} prefix".format(
+                    ', '.join([self.cmd_prefix + x[4:] for x in dir(self) if x[:4] == 'cmd_' and x not in self.hidden_commands]),
+                    self.cmd_prefix
+                )
+            else:
+                command_lines = ['{}{}: {}'.format(self.cmd_prefix, cmd[4:], getattr(self, cmd).__doc__ or 'No documentation available') for cmd in dir(self) if cmd[:4] == 'cmd_' and cmd not in self.hidden_commands]
+                return "Available Commands\n\n{}".format('\n'.join(command_lines))
         cmd = args[0]
         if hasattr(self, 'cmd_%s' % cmd):
             if getattr(self, 'cmd_%s' % cmd).__doc__ is not None:
