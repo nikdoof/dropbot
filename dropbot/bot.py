@@ -3,6 +3,7 @@ import pkgutil
 from json import loads as base_loads
 from random import choice
 import logging
+import re
 
 from sleekxmpp import ClientXMPP
 from redis import Redis
@@ -23,6 +24,7 @@ market_systems = [
     ('GE-8JV', 30001198),
 ]
 
+zkillboard_regex = re.compile(r'http(s|):\/\/zkillboard\.com\/kill\/(?P<killID>\d+)\/')
 
 class DropBot(ClientXMPP):
     def __init__(self, *args, **kwargs):
@@ -66,25 +68,35 @@ class DropBot(ClientXMPP):
             self.plugin['xep_0045'].joinMUC(room, self.nickname, wait=True)
 
     def handle_muc_message(self, msg):
-        if msg['mucnick'] == self.nickname or msg['body'][0] != self.cmd_prefix:
+        if msg['mucnick'] == self.nickname:
             return
-        args = msg['body'].split(' ')
-        cmd = args[0][1:].lower()
-        args.pop(0)
 
-        # Call the command
-        if hasattr(self, 'cmd_%s' % cmd):
-            try:
-                resp = getattr(self, 'cmd_%s' % cmd)(args, msg)
-            except:
-                resp = 'Oops, something went wrong...'
-                logging.getLogger(__name__).exception('Error handling command')
-            if resp:
-                if isinstance(resp, tuple) and len(resp) == 2:
-                    bdy, html = resp
+        if msg['body'][0] == self.cmd_prefix:
+            args = msg['body'].split(' ')
+            cmd = args[0][1:].lower()
+            args.pop(0)
+
+            # Call the command
+            if hasattr(self, 'cmd_%s' % cmd):
+                try:
+                    resp = getattr(self, 'cmd_%s' % cmd)(args, msg)
+                except:
+                    resp = 'Oops, something went wrong...'
+                    logging.getLogger(__name__).exception('Error handling command')
+                if resp:
+                    if isinstance(resp, tuple) and len(resp) == 2:
+                        bdy, html = resp
+                    else:
+                        bdy, html = resp, None
+                    self.send_message(msg['from'].bare, mbody=bdy, mhtml=html, mtype='groupchat')
+        else:
+            for match in zkillboard_regex.finditer(msg['body']):
+                resp = self.cmd_kill([match.groupdict()['killID']], msg)
+                if len(resp) == 2:
+                    body, html = resp
                 else:
-                    bdy, html = resp, None
-                self.send_message(msg['from'].bare, mbody=bdy, mhtml=html, mtype='groupchat')
+                    body, html = resp, None
+                self.send_message(msg['from'].bare, mbody=body, mhtml=html, mtype='groupchat')
 
     def handle_private_message(self, msg):
         if msg['type'] == 'groupchat':
@@ -524,4 +536,24 @@ class DropBot(ClientXMPP):
             ', '.join(['{} ({})'.format(x, y) for x, y in kill_types]),
             ', '.join(['{} ({})'.format(x, y) for x, y in ship_types]),
             ', '.join([x for x, y in alli_assoc])
+        )
+
+    def cmd_kill(self, args, msg):
+        """Returns a summary of a zKillboard killmail"""
+        if len(args) == 0:
+            return '!kill <Kill ID>'
+        kill_id = args[0]
+        try:
+            kill_id = int(kill_id)
+        except ValueError:
+            return 'Invalid kill ID'
+        headers, data = ZKillboard().killID(kill_id).get()
+        kill = data[0]
+
+        return '{} ({}) in {}, {} attacker(s), {} ISK lost.'.format(
+            kill['victim']['characterName'],
+            self.types[unicode(kill['victim']['shipTypeID'])],
+            self.map.node[int(kill['solarSystemID'])]['name'],
+            len(kill['attackers']),
+            intcomma(kill['zkb']['totalValue']),
         )
