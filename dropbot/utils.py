@@ -1,5 +1,7 @@
 from hashlib import sha1
 import zlib
+import redis
+import logging
 
 
 class EVEAPIRedisCache(object):
@@ -15,7 +17,12 @@ class EVEAPIRedisCache(object):
 
     def retrieve(self, host, path, params):
         key = self.gen_key(host, path, params)
-        val = self.redis.get(key)
+        try:
+            val = self.redis.get(key)
+        except redis.RedisError:
+            logging.exception('Error retrieving an EVE API call to Redis')
+            val = None
+            pass
         if val:
             return zlib.decompress(val)
 
@@ -24,5 +31,9 @@ class EVEAPIRedisCache(object):
         cache_time = obj.cachedUntil - obj.currentTime
         if cache_time > 0:
             val = zlib.compress(doc, 9)
-            self.redis.set(key, val)
-            self.redis.expire(key, cache_time)
+            try:
+                self.redis.set(key, val)
+                self.redis.expire(key, cache_time)
+            except redis.RedisError:
+                logging.exception('Error storing an EVE API call to Redis')
+                pass

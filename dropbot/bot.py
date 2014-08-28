@@ -47,6 +47,8 @@ class DropBot(ClientXMPP):
         self.kill_corps = [int(x) for x in kwargs.pop('kill_corps', [])]
         self.kill_check_timeout = kwargs.pop('kill_check_timeout', 300)
         self.kills_muted = False
+        self.office_api_key_keyid = kwargs.pop('office_api_keyid', None)
+        self.office_api_key_vcode = kwargs.pop('office_api_vcode', None)
 
         self.redis_pool = ConnectionPool.from_url(kwargs.pop('redis_url', 'redis://localhost:6379/0'))
         self.redis = Redis(connection_pool=self.redis_pool)
@@ -74,6 +76,15 @@ class DropBot(ClientXMPP):
             self._types = base_loads(data)
         return self._types
 
+    @property
+    def stations(self):
+        if not hasattr(self, '_stations'):
+            data = pkgutil.get_data('dropbot', 'data/stations.json')
+            self._stations = base_loads(data)
+            logging.debug('Getting ConquerableStationList')
+            for x in self.get_eveapi().eve.ConquerableStationList().outposts:
+                self._stations[unicode(x.stationID)] = x.solarSystemID
+        return self._stations
 
     # Command / Connection Handling
     def handle_session_start(self, event):
@@ -204,8 +215,40 @@ class DropBot(ClientXMPP):
             intcomma(float(root.findall("./marketstat/type[@id='{}']/buy/max".format(type_id))[0].text)),
         )
 
+    def _get_offices(self, keyid, vcode):
+        """Returns a list of offices from a Corp API key"""
+        logging.debug('Retreving offices for {}/{}'.format(keyid, vcode))
+        if not keyid or not vcode:
+            return []
+        try:
+            assets = self.get_eveapi_auth(keyid, vcode).corp.AssetList()
+        except RuntimeError:
+            logging.exception('Unable to retrieve asset listing for {}/{}'.format(keyid, vcode))
+            return []
+
+        def location_to_station(location_id):
+            if location_id >= 67000000:
+                return location_id - 6000000
+            if location_id >= 66000000:
+                return location_id - 6000001
+            return location_id
+
+        return [self.stations[unicode(location_to_station(x.locationID))] for x in assets.assets if x.typeID == 27]
+
     def get_eveapi(self):
         return EVEAPIConnection(cacheHandler=EVEAPIRedisCache(self.redis))
+
+    def get_eveapi_auth(self, keyid, vcode):
+        return self.get_eveapi().auth(keyID=keyid, vCode=vcode)
+
+    def check_eveapi_permission(self, keyid, vcode, bit):
+        try:
+            accessmask = int(self.get_eveapi_auth(keyid, vcode).account.APIKeyInfo().key.accessMask)
+            logging.debug('Key ID {} - Access Mask: {}'.format(keyid, accessmask))
+        except RuntimeError:
+            return False
+        mask = 1 << bit
+        return (accessmask & mask) > 0
 
     # Commands
 
@@ -632,3 +675,35 @@ class DropBot(ClientXMPP):
         return 'Kill messages: {}'.format(
             'muted' if self.kills_muted else 'not muted'
         )
+
+    def cmd_nearestoffice(self, args, msg):
+        if len(args) != 1:
+            return '!nearestoffice <system>'
+        source = args[0]
+
+        if not self.office_api_key_keyid or not self.office_api_key_vcode:
+            return 'No Corp API key is setup'
+        if not self.check_eveapi_permission(self.office_api_key_keyid, self.office_api_key_vcode, 1):
+            return "The API key setup doesn't have the correct permissions"
+
+        source = self._system_picker(source)
+        if isinstance(source, basestring):
+            return source
+
+        min_route = None
+        target_office = None
+        for office in self._get_offices(self.office_api_key_keyid, self.office_api_key_vcode):
+            if office == source:
+                return 'An office is in the target system'
+            route_length = len(self.map.route_gate(source, office)) - 1
+            if not min_route or (route_length) < min_route:
+                target_office = office
+                min_route = route_length
+
+        if target_office:
+            return 'Nearest Office to {} is {}, {} jump(s)'.format(
+                self.map.get_system_name(source),
+                self.map.get_system_name(target_office),
+                min_route,
+            )
+        return 'No known offices.'

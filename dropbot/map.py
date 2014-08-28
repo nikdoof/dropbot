@@ -265,15 +265,3 @@ class Map(networkx.Graph):
                 destinations.append((destination_data, distance))
         return destinations
 
-
-if __name__ == '__main__':
-
-    from sqlite3 import connect
-    
-    with connect('eve.db') as db_conn:
-        m = Map()
-        print("Loading data from SDE...")
-        m.from_sde(db_conn)
-    print("Writing output")
-    with open('output.json', 'wb') as f:
-        f.write(m.to_json())
