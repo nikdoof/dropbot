@@ -712,3 +712,11 @@ class DropBot(ClientXMPP):
                 min_route,
             )
         return 'No known offices.'
+
+    def cmd_rageping(self, args, msg):
+        """Ping spams everyone's name in a room, use with caution"""
+        if msg['type'] != 'groupchat':
+            return 'This only works in MUC rooms'
+
+        names = self.plugin['xep_0045'].getRoster(msg['from'].bare)
+        return 'RAGE PING: {} :frogsiren:'.format(', '.join(names))
