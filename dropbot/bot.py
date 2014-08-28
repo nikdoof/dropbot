@@ -669,12 +669,17 @@ class DropBot(ClientXMPP):
             url,
         )
 
-    def cmd_togglekills(self, args, msg):
-        """Toggles the broadcasting of kills to MUC channels"""
-        self.kills_muted = not self.kills_muted
-        return 'Kill messages: {}'.format(
-            'muted' if self.kills_muted else 'not muted'
-        )
+    def cmd_mute(self, args, msg):
+        """Mutes killmail broadcast for 30 minutes"""
+
+        self.kills_muted = True
+
+        def unmute(self):
+            self.kills_muted = False
+
+        self.schedule('unmute', 30 * 60, unmute, [self])
+        return 'Killmails muted, posting will resume automatically in 30 minutes'
+
 
     def cmd_nearestoffice(self, args, msg):
         if len(args) != 1:
