@@ -84,8 +84,7 @@ class Map(networkx.Graph):
         for id, name, region_name, x, y, z, security in db_conn.execute("""
             SELECT solarSystemID, solarSystemName, regionName, mapSolarSystems.x, mapSolarSystems.y, mapSolarSystems.z, mapSolarSystems.security
             FROM mapSolarSystems
-            INNER JOIN mapRegions ON mapSolarSystems.regionID = mapRegions.regionID
-            WHERE mapSolarSystems.regionID < 11000001"""):
+            INNER JOIN mapRegions ON mapSolarSystems.regionID = mapRegions.regionID"""):
             self.add_node(id, system_id=id, name=name, region=region_name, coords=(x, y, z), security=security)
         for from_id, to_id in db_conn.execute("SELECT fromSolarSystemID, toSolarSystemID FROM mapSolarSystemJumps"):
             self.add_edge(from_id, to_id, weight=1, link_type='gate')
