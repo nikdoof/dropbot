@@ -54,8 +54,8 @@ class DropBot(ClientXMPP):
         self.redis = Redis(connection_pool=self.redis_pool)
         self.map = Map.from_json(pkgutil.get_data('dropbot', 'data/map.json'))
 
-        jid = kwargs.pop('jid')
-        password = kwargs.pop('password')
+        jid = kwargs.pop('jid', None)
+        password = kwargs.pop('password', None)
 
         super(DropBot, self).__init__(jid, password)
 
@@ -664,7 +664,7 @@ class DropBot(ClientXMPP):
             return
 
         # Drop kills less than 1mil if they've come from stomp
-        if float(kill['zkb']['totalValue']) < 1000000 and raw:
+        if raw and float(kill['zkb']['totalValue']) < 1000000:
             return
 
         return '{} ({}) in {}, {}, {} attacker(s), {} ISK lost{}'.format(
