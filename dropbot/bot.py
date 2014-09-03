@@ -45,7 +45,7 @@ class DropBot(ClientXMPP):
         self.hidden_commands = ['cmd_prefix']
         self.last_killdate = datetime.utcnow()
         self.kill_corps = [int(x) for x in kwargs.pop('kill_corps', [])]
-        self.kill_check_timeout = kwargs.pop('kill_check_timeout', 300)
+        self.kills_disabled = kwargs.pop('kills_disabled', '0') == '1'
         self.kills_muted = False
         self.office_api_key_keyid = kwargs.pop('office_api_keyid', None)
         self.office_api_key_vcode = kwargs.pop('office_api_vcode', None)
@@ -54,7 +54,11 @@ class DropBot(ClientXMPP):
         self.redis = Redis(connection_pool=self.redis_pool)
         self.map = Map.from_json(pkgutil.get_data('dropbot', 'data/map.json'))
 
-        super(DropBot, self).__init__(*args, **kwargs)
+        jid = kwargs.pop('jid')
+        password = kwargs.pop('password')
+
+        super(DropBot, self).__init__(jid, password)
+
         self.register_plugin('xep_0030')  # Service Discovery
         self.register_plugin('xep_0045')  # Multi-User Chat
         self.register_plugin('xep_0199')  # XMPP Ping
@@ -95,9 +99,13 @@ class DropBot(ClientXMPP):
         for room in self.rooms:
             self.plugin['xep_0045'].joinMUC(room, self.nickname, wait=True)
 
-        # Start the killchecker
-        self.stomp = ZKillboardStompListener(self)
-        self.stomp.connect('tcp://eve-kill.net:61613')
+        # Start the killchecker if we have corps to monitor
+        if len(self.kill_corps) > 0 and not self.kills_disabled:
+            logging.info('Starting ZKB Stomp monitor for corps: {}'.format(', '.join(self.kill_corps)))
+            self.stomp = ZKillboardStompListener(self)
+            self.stomp.connect('tcp://eve-kill.net:61613')
+        else:
+            logging.info('Kill monitoring disabled.')
 
     def call_command(self, command, *args, **kwargs):
         if hasattr(self, 'cmd_%s' % command):

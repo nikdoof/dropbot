@@ -1,6 +1,7 @@
 import stomp
 import urlparse
 import json
+import logging
 
 urlparse.uses_netloc.append('tcp')
 
@@ -9,6 +10,7 @@ class ZKillboardStompListener(stomp.listener.ConnectionListener):
     def __init__(self, bot):
         self.bot = bot
         self.conn = None
+        self.ids = [None for x in range(50)]
 
     def on_error(self, headers, message):
         pass
@@ -16,6 +18,13 @@ class ZKillboardStompListener(stomp.listener.ConnectionListener):
     def on_message(self, headers, message):
         kill = json.loads(message)
         kill_type = None
+
+        if kill['killID'] in self.ids:
+            logging.error('Duplicate message')
+            return
+
+        self.ids.pop(0)
+        self.ids.append(kill['killID'])
 
         # Tag kills
         for attacker in kill['attackers']:
