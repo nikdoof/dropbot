@@ -29,7 +29,7 @@ market_systems = [
     ('GE-8JV', 30001198),
 ]
 
-zkillboard_regex = re.compile(r'http(s|):\/\/zkillboard\.com\/kill\/(?P<killID>\d+)\/')
+zkillboard_regex = re.compile(r'http(s|):\/\/(?P<host>.*)\/kill\/(?P<killID>\d+)\/')
 
 
 class UnknownCommandException(Exception):
@@ -137,10 +137,11 @@ class DropBot(ClientXMPP):
                 response_lines = []
                 for match in zkillboard_regex.finditer(msg['body']):
                     kill_id = match.groupdict()['killID']
+                    host = match.groupdict()['host']
                     logging.info('Found Kill ID {}'.format(kill_id))
                     if kill_id in seen:
                         continue
-                    body, html = self.call_command('kill', [kill_id], msg, no_url=True)
+                    body, html = self.call_command('kill', [kill_id], msg, no_url=True, host=host)
                     response_lines.append(body)
                     seen.add(kill_id)
                 response_lines = [x for x in response_lines if x]
@@ -632,7 +633,7 @@ class DropBot(ClientXMPP):
             ', '.join([x for x, y in alli_assoc])
         )
 
-    def cmd_kill(self, args, msg, no_url=False, raw=None):
+    def cmd_kill(self, args, msg, no_url=False, raw=None, host=None):
         """Returns a summary of a zKillboard killmail"""
         if not raw:
             if len(args) == 0:
@@ -644,10 +645,11 @@ class DropBot(ClientXMPP):
                 m = zkillboard_regex.match(kill_id)
                 if m:
                     kill_id = m.groupdict()['killID']
+                    host = m.groupdict()['host']
                 else:
                     return 'Invalid kill ID'
 
-            headers, data = ZKillboard().killID(kill_id).get()
+            headers, data = ZKillboard(base_url='https://{}/api/'.format(host)).killID(kill_id).get()
             kill = data[0]
         else:
             kill = raw
@@ -656,7 +658,7 @@ class DropBot(ClientXMPP):
         if no_url:
             url = ''
         else:
-            url = ' - https://zkillboard.com/kill/{}/'.format(kill_id)
+            url = ' - https://{}/kill/{}/'.format(host, kill_id)
 
         # Ignore kills over an hour old if they're from stomp
         age = (datetime.utcnow() - datetime.strptime(kill['killTime'], '%Y-%m-%d %H:%M:%S'))
@@ -667,13 +669,18 @@ class DropBot(ClientXMPP):
         if raw and float(kill['zkb']['totalValue']) < 1000000:
             return
 
+        if 'zkb' in kill and 'totalValue' in kill['zkb']:
+            value_lost = intword(float(kill['zkb']['totalValue']))
+        else:
+            value_lost = '???'
+
         return '{} ({}) in {}, {}, {} attacker(s), {} ISK lost{}'.format(
             kill['victim']['characterName'],
             self.types[unicode(kill['victim']['shipTypeID'])],
             self.map.node[int(kill['solarSystemID'])]['name'],
             naturaltime(age),
             len(kill['attackers']),
-            intword(float(kill['zkb']['totalValue'])),
+            value_lost,
             url,
         )
 
