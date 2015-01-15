@@ -14,4 +14,4 @@ build:
     - sherzberg/slack-notify:
         subdomain: tensixtyone
         token: $SLACK_TOKEN
-        channel: general
+        channel: '#general'
