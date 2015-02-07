@@ -5,6 +5,11 @@ dropbot
 
 A XMPP bot to provide simple services to NOG8S and Predditors in general
 
+License
+-------
+
+This repository is licensed under the MIT license.
+
 Setup
 -----
 
