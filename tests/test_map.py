@@ -97,7 +97,7 @@ class MapTestCase(TestCase):
 
     def test_jump_distance_jumpfreighter(self):
         """
-        The maximum jump range of a JF is 5LY.
+        The maximum jump range of a JF is 10LY.
         """
         self.assertEquals(ship_class_to_range('jumpfreighter', 5), 10)
 
