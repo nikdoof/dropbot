@@ -10,8 +10,3 @@ build:
         name: Run unit testing
         code: |
           python setup.py test
-  after-steps:
-    - sherzberg/slack-notify:
-        subdomain: tensixtyone
-        token: $SLACK_TOKEN
-        channel: '#general'
