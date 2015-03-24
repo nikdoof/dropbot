@@ -49,9 +49,13 @@ class DropBot(ClientXMPP):
         self.kills_muted = False
         self.office_api_key_keyid = kwargs.pop('office_api_keyid', None)
         self.office_api_key_vcode = kwargs.pop('office_api_vcode', None)
-
-        self.redis_pool = ConnectionPool.from_url(kwargs.pop('redis_url', 'redis://localhost:6379/0'))
-        self.redis = Redis(connection_pool=self.redis_pool)
+        
+        if 'redis_url' in kwargs:
+            self.redis_pool = ConnectionPool.from_url(kwargs.pop('redis_url', 'redis://localhost:6379/0'))
+            self.redis = Redis(connection_pool=self.redis_pool)
+        else:
+            logging.warning('No DROPBOT_REDIS_URL defined, EVE API calls will not be cached!')
+            self.redis = None
         self.map = Map.from_json(pkgutil.get_data('dropbot', 'data/map.json'))
 
         jid = kwargs.pop('jid', None)
@@ -245,7 +249,9 @@ class DropBot(ClientXMPP):
         return [self.stations[unicode(location_to_station(x.locationID))] for x in assets.assets if x.typeID == 27]
 
     def get_eveapi(self):
-        return EVEAPIConnection(cacheHandler=EVEAPIRedisCache(self.redis))
+        if self.redis:
+            return EVEAPIConnection(cacheHandler=EVEAPIRedisCache(self.redis))
+        return EVEAPIConnection()
 
     def get_eveapi_auth(self, keyid, vcode):
         return self.get_eveapi().auth(keyID=keyid, vCode=vcode)
