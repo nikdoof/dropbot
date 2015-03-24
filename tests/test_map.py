@@ -1,5 +1,5 @@
 from unittest import TestCase
-from dropbot.map import Map
+from dropbot.map import Map, ship_class_to_range
 import pkgutil
 
 class MapTestCase(TestCase):
@@ -61,3 +61,48 @@ class MapTestCase(TestCase):
         r = self.map.route_gate(30001161, 30001198)
         self.assertEqual(len(r), 2)
         self.assertListEqual(r, [30001161, 30001198])
+
+    # Jump ranges taken from devblog:
+    # http://community.eveonline.com/news/dev-blogs/phoebe-travel-change-update/
+
+    def test_jump_distance_titan(self):
+        """
+        The maximum jump range of a titan is 5LY.
+        """
+        self.assertEquals(ship_class_to_range('titan', 5), 5)
+
+    def test_jump_distance_supercarrier(self):
+        """
+        The maximum jump range of a supercarrier is 5LY.
+        """
+        self.assertEquals(ship_class_to_range('supercarrier', 5), 5)
+
+    def test_jump_distance_carrier(self):
+        """
+        The maximum jump range of a carrier is 5LY.
+        """
+        self.assertEquals(ship_class_to_range('carrier', 5), 5)
+
+    def test_jump_distance_dreadnought(self):
+        """
+        The maximum jump range of a dread is 5LY.
+        """
+        self.assertEquals(ship_class_to_range('dreadnought', 5), 5)
+
+    def test_jump_distance_industrial(self):
+        """
+        The maximum jump range of a rorqual is 5LY.
+        """
+        self.assertEquals(ship_class_to_range('industrial', 5), 5)
+
+    def test_jump_distance_jumpfreighter(self):
+        """
+        The maximum jump range of a JF is 5LY.
+        """
+        self.assertEquals(ship_class_to_range('jumpfreighter', 5), 10)
+
+    def test_jump_distance_blackops(self):
+        """
+        The maximum jump range of a bloops is 8LY.
+        """
+        self.assertEquals(ship_class_to_range('blackops', 5), 8)
