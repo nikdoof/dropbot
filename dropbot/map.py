@@ -33,13 +33,13 @@ hull_classes = {
 }
 
 base_range = {
-    'carrier': 6.5,
-    'dreadnought': 5.0,
-    'industrial': 5.0,
+    'carrier': 2.5,
+    'dreadnought': 2.5,
+    'industrial': 2.5,
     'jumpfreighter': 5.0,
-    'supercarrier': 4.0,
-    'titan': 3.5,
-    'blackops': 3.5,
+    'supercarrier': 2.5,
+    'titan': 2.5,
+    'blackops': 4.0,
 }
 
 isotope_usage = {
@@ -55,6 +55,8 @@ isotope_usage = {
 
 EVE_LY = 9460000000000000  # EVE's definition of a ly in KM
 
+JDC_BONUS = 0.20
+
 def calc_distance(sys1, sys2):
     """Calculate the distance in light years between two sets of 3d coordinates"""
     return math.sqrt(sum((a - b)**2 for a, b in zip(sys1, sys2))) / EVE_LY
@@ -64,13 +66,13 @@ def hull_to_range(hull, jdc_skill):
     if hull.lower() not in hull_classes:
         raise ValueError('Unknown hull class {}'.format(hull))
     return ship_class_to_range(hull_classes[hull.lower()], jdc_skill)
-    
+
 def ship_class_to_range(ship_class, jdc_skill):
     """Returns the jump range of a provided ship class and Jump Drive Calibration skill"""
     if ship_class.lower() not in base_range:
         raise ValueError('Unknown ship class {}'.format(ship_class))
     base = base_range[ship_class]
-    jump_range = base * (1 + (0.25 * jdc_skill))
+    jump_range = base * (1 + (JDC_BONUS * jdc_skill))
     return jump_range
 
 
@@ -91,8 +93,8 @@ class Map(networkx.Graph):
 
     def build_jumps(self):
         """Constructs the possible jump network"""
-        max_jump = 6.5 * (1 + (0.25 * 5))
-        
+        max_jump = base_range['blackops'] * (1 + (JDC_BONUS * 5))
+
         for source_id, source_data in self.nodes_iter(data=True):
             for destination_data, destination_range in self.neighbors_jump(source_id, max_jump):
                 if destination_data['security'] < 0.5:
@@ -126,7 +128,7 @@ class Map(networkx.Graph):
     def get_systems(self, name):
         """Returns a list of systems by a partial system name"""
         return [k for k, v in self.nodes_iter(data=True) if v['name'].lower().find(name.lower()) == 0]
-                
+
     def system_distance(self, source, destination):
         """Calculates the distance in ly between two systems"""
         return calc_distance(self.node[source]['coords'], self.node[destination]['coords'])
@@ -166,7 +168,7 @@ class Map(networkx.Graph):
                     next_system = system['system_id']
             route.append(next_system)
             current_system = next_system
-            
+
     def route_jump(self, source, destination, range=None, hull=None, ship_class=None, station_only=False, avoid_systems=[]):
         """Calculate a jump route between two systems"""
         closed = set()
@@ -174,18 +176,18 @@ class Map(networkx.Graph):
         route = {}
         g_score = {source: 0}
         f_score = {source: g_score[source] + self.system_distance(source, destination)}
-        
+
         while len(open):
             current = min([x for x in f_score.items() if x[0] in open], key=lambda x: x[1])[0]
             if current == destination:
-            
+
                 def build_path(route, current):
                     if current in route:
                         p = build_path(route, route[current])
                         p.append(current)
                         return p
                     return [current] 
-                    
+
                 return build_path(route, destination)
             open.remove(current)
             closed.add(current)
@@ -196,7 +198,7 @@ class Map(networkx.Graph):
                    (station_only and not neighbor['station']) or \
                    neighbor_id in avoid_systems:
                     continue
-                    
+
                 score = g_score[current] + self.system_distance(current, neighbor_id)
                 if neighbor_id not in open or score < g_score[neighbor_id]:
                     route[neighbor_id] = current
@@ -215,7 +217,7 @@ class Map(networkx.Graph):
             ly += self.system_distance(source, destination)
             source = destination
         return ly
-        
+
     def route_jump_isotopes(self, route, jfc_skill, jf_skill=None, hull=None, ship_class=None):
         """Calculate the total number of isotopes needed for a route"""
         if not hull and not ship_class:
@@ -224,14 +226,14 @@ class Map(networkx.Graph):
             ship_class = hull_classes[hull]
         if ship_class == 'jumpfreighter' and not jf_skill:
             raise ValueError('No Jump Freighter skill level provided for a jump freighter ship')
-            
+
         multi = 1 - (.1 * jfc_skill)
         if ship_class == 'jumpfreighter':
             multi = multi * (1 - (.1 * jf_skill))
         base = isotope_usage[ship_class] *  multi
         ly = self.route_jump_distance(route) 
         return round(ly * base, 0)
-              
+
     def neighbors_gate(self, system_id):
         """List systems that are connected to a system by gates"""
         return self.neighbors(system_id)
@@ -247,12 +249,12 @@ class Map(networkx.Graph):
                 range = ship_class_to_range(ship_class, 5)
             else:
                 raise ValueError('No range, hull, or ship class provided')
-              
+
         # Calculate the max coords for the jump radius, avoiding costly calc_distance calls
         range_x = (source['coords'][0] + (range * EVE_LY), source['coords'][0] - (range * EVE_LY))
         range_y = (source['coords'][1] + (range * EVE_LY), source['coords'][1] - (range * EVE_LY))
         range_z = (source['coords'][2] + (range * EVE_LY), source['coords'][2] - (range * EVE_LY))
-        
+
         destinations = []
         for destination_id, destination_data in self.nodes_iter(data=True):
             if destination_data['coords'][0] > range_x[0] or destination_data['coords'][0] < range_x[1] or \
