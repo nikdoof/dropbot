@@ -10,6 +10,11 @@ License
 
 This repository is licensed under the MIT license.
 
+Requirements
+------------
+
+Python requirements are covered in ```requirements.txt```, in addition a working Redis server is needed to enable API caching from the EVE Online API server. Redis is not essential to the operation of Dropbot but without caching you may get into hot water with CCP.
+
 Setup
 -----
 
@@ -31,5 +36,6 @@ The configuration is passed by using environment variables.
 * ```DROPBOT_PASSWORD``` - Password of the account
 * ```DROPBOT_NICKNAME``` - MUC nickname (defaults to Dropbot)
 * ```DROPBOT_ROOMS``` - List of MUC rooms to join, seperated by commas
+* ```DROPBOT_REDIS_URL``` - 12 factor style URL of the Redis server to use (defaults to redis://localhost:6379/0)
 * ```DROPBOT_CMD_PREFIX``` - Prefix of MUC channel commands (defaults to !)
 * ```DROPBOT_KOS_URL``` - URL of the CVA KOS API service (defaults to http://kos.cva-eve.org/api/)
