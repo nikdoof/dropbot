@@ -15,6 +15,13 @@ Setup
 
 Dropbot is designed to run on Heroku, but can be ran locally using ```python dropbot\cli.py -c env```
 
+Docker
+^^^^^^
+
+Dropbot can be run on Docker using the image ``robhaswell/docker``:
+
+``docker run -ti -e DROPBOT_JID='user@server' -e DROPBOT_PASSWORD='password' -e DROPBOT_ROOMS='room@server' robhaswell/dropbot``
+
 Configuration
 -------------
 
