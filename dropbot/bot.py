@@ -25,8 +25,7 @@ market_systems = [
     ('Amarr', 30002187),
     ('Rens', 30002510),
     ('Dodixie', 30002659),
-    ('HED-GP', 30001161),
-    ('GE-8JV', 30001198),
+    ('U-HVIX', 30000575),
 ]
 
 zkillboard_regex = re.compile(r'http(s|):\/\/(?P<host>.*)\/kill\/(?P<killID>\d+)\/')
