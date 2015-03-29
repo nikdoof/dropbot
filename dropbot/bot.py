@@ -20,14 +20,6 @@ from dropbot.stomp_listener import ZKillboardStompListener
 
 urlparse.uses_netloc.append("redis")
 
-market_systems = [
-    ('Jita', 30000142),
-    ('Amarr', 30002187),
-    ('Rens', 30002510),
-    ('Dodixie', 30002659),
-    ('U-HVIX', 30000575),
-]
-
 zkillboard_regex = re.compile(r'http(s|):\/\/(?P<host>.*)\/kill\/(?P<killID>\d+)\/')
 
 
@@ -48,6 +40,7 @@ class DropBot(ClientXMPP):
         self.kills_muted = False
         self.office_api_key_keyid = kwargs.pop('office_api_keyid', None)
         self.office_api_key_vcode = kwargs.pop('office_api_vcode', None)
+        self.market_systems = kwargs.pop('market_systems', ['Jita', 'Amarr', 'Rens', 'Dodixie'])
         
         if 'redis_url' in kwargs:
             self.redis_pool = ConnectionPool.from_url(kwargs.pop('redis_url', 'redis://localhost:6379/0'))
@@ -303,7 +296,10 @@ class DropBot(ClientXMPP):
         sell_sys = None
         buy_sys = None
 
-        for name, sys_id in market_systems:
+        for name in self.market_systems:
+            sys_id = self.map.get_system_id(name)
+            if not sys_id:
+                continue
             sell, buy = self._get_evecentral_price(type_id, sys_id)
             if (sell < min_sell or min_sell == 0) and sell > 0:
                 min_sell = sell

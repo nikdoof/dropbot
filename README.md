@@ -39,6 +39,7 @@ The configuration is passed by using environment variables.
 * ```DROPBOT_REDIS_URL``` - 12 factor style URL of the Redis server to use (defaults to redis://localhost:6379/0)
 * ```DROPBOT_CMD_PREFIX``` - Prefix of MUC channel commands (defaults to !)
 * ```DROPBOT_KOS_URL``` - URL of the CVA KOS API service (defaults to http://kos.cva-eve.org/api/)
+* ```DROPBOT_MARKET_SYSTEMS``` - A comma seperated list of systems to be used for the best price checker (defaults to Jita, Amarr, Rens, Dodixie)
 * ```DROPBOT_KILL_CORPS``` - List of Corp IDs to track for kills
 * ```DROPBOT_KILLS_DISABLED``` - Disables the streaming of zKillboard kills to the channels (default to 0)
 * ```DROPBOT_OFFICE_API_KEYID``` - API KeyID to use for the nearest office finder.
