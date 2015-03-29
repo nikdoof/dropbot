@@ -48,3 +48,13 @@ Updating the SDE data
 ---------------------
 
 To update the SDE data in the bot, use the ```gen_reference_data.py``` with a copy of the Sqlite conversion of the SDE, this will produce three json files that need to be copied to the data directory witthin the ```dropbot``` package.
+
+    $ python gen_reference_data.py eve.db
+    Importing Types...
+    Importing Stations...
+    Importing Map...
+    $ ls -1
+    map.json
+    stations.json
+    types.json
+
