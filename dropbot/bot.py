@@ -41,7 +41,7 @@ class DropBot(ClientXMPP):
         self.office_api_key_keyid = kwargs.pop('office_api_keyid', None)
         self.office_api_key_vcode = kwargs.pop('office_api_vcode', None)
         self.market_systems = kwargs.pop('market_systems', ['Jita', 'Amarr', 'Rens', 'Dodixie'])
-        
+
         if 'redis_url' in kwargs:
             self.redis_pool = ConnectionPool.from_url(kwargs.pop('redis_url', 'redis://localhost:6379/0'))
             self.redis = Redis(connection_pool=self.redis_pool)
@@ -281,7 +281,6 @@ class DropBot(ClientXMPP):
                 return 'This command has no documentation'
         else:
             return 'Unknown command'
-
 
     def cmd_bestprice(self, args, msg):
         """Returns the best price for an item out of the current known market hub systems"""
@@ -697,7 +696,6 @@ class DropBot(ClientXMPP):
 
         self.schedule('unmute', 30 * 60, unmute, [self])
         return 'Killmails muted, posting will resume automatically in 30 minutes'
-
 
     def cmd_nearestoffice(self, args, msg):
         if len(args) != 1:

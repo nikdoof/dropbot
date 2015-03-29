@@ -57,15 +57,18 @@ EVE_LY = 9460000000000000  # EVE's definition of a ly in KM
 
 JDC_BONUS = 0.20
 
+
 def calc_distance(sys1, sys2):
     """Calculate the distance in light years between two sets of 3d coordinates"""
     return math.sqrt(sum((a - b)**2 for a, b in zip(sys1, sys2))) / EVE_LY
+
 
 def hull_to_range(hull, jdc_skill):
     """Returns the jump range of a provided ship hull and Jump Drive Calibration skill"""
     if hull.lower() not in hull_classes:
         raise ValueError('Unknown hull class {}'.format(hull))
     return ship_class_to_range(hull_classes[hull.lower()], jdc_skill)
+
 
 def ship_class_to_range(ship_class, jdc_skill):
     """Returns the jump range of a provided ship class and Jump Drive Calibration skill"""
@@ -84,9 +87,10 @@ class Map(networkx.Graph):
     def from_sde(self, db_conn):
         """Load map data from a EVE SDE Sqlite DB"""
         for id, name, region_name, x, y, z, security in db_conn.execute("""
-            SELECT solarSystemID, solarSystemName, regionName, mapSolarSystems.x, mapSolarSystems.y, mapSolarSystems.z, mapSolarSystems.security
-            FROM mapSolarSystems
-            INNER JOIN mapRegions ON mapSolarSystems.regionID = mapRegions.regionID"""):
+                SELECT solarSystemID, solarSystemName, regionName, mapSolarSystems.x, mapSolarSystems.y, mapSolarSystems.z, mapSolarSystems.security
+                FROM mapSolarSystems
+                INNER JOIN mapRegions ON mapSolarSystems.regionID = mapRegions.regionID
+        """):
             self.add_node(id, system_id=id, name=name, region=region_name, coords=(x, y, z), security=security)
         for from_id, to_id in db_conn.execute("SELECT fromSolarSystemID, toSolarSystemID FROM mapSolarSystemJumps"):
             self.add_edge(from_id, to_id, weight=1, link_type='gate')
@@ -135,9 +139,7 @@ class Map(networkx.Graph):
 
     def route_gate(self, source, destination, filter=None):
         """Route between two systems using gates (fastest)"""
-
         # TODO: add EVE routing options (highsec/lowsec/fastest)
-
         g = networkx.Graph(data=[(u, v) for u, v, d in self.edges_iter(data=True) if d['link_type'] == 'gate' or d['link_type'] == 'bridge'])
         return networkx.astar_path(self, source, destination)
 
@@ -145,7 +147,7 @@ class Map(networkx.Graph):
         """A fast but error prone route calculation between two systems using jumps"""
         route = [source]
         current_system = source
-        while not destination in route:
+        while destination not in route:
             next_distance = None
             next_system = None
             # Iterate through jump neighbour systems to find the best candidate
@@ -159,7 +161,6 @@ class Map(networkx.Graph):
                 if system['system_id'] == destination:
                     route.append(destination)
                     return route
-
                 # Use heuristics to identify the best candidate (one that gets us closest to the target)
                 distance_to_target = self.system_distance(system['system_id'], destination)
                 if distance_to_target < next_distance or not next_distance:
@@ -185,7 +186,7 @@ class Map(networkx.Graph):
                         p = build_path(route, route[current])
                         p.append(current)
                         return p
-                    return [current] 
+                    return [current]
 
                 return build_path(route, destination)
             open_set.remove(current)
@@ -229,8 +230,8 @@ class Map(networkx.Graph):
         multi = 1 - (.1 * jfc_skill)
         if ship_class == 'jumpfreighter':
             multi = multi * (1 - (.1 * jf_skill))
-        base = isotope_usage[ship_class] *  multi
-        ly = self.route_jump_distance(route) 
+        base = isotope_usage[ship_class] * multi
+        ly = self.route_jump_distance(route)
         return round(ly * base, 0)
 
     def neighbors_gate(self, system_id):
@@ -259,9 +260,8 @@ class Map(networkx.Graph):
             if destination_data['coords'][0] > range_x[0] or destination_data['coords'][0] < range_x[1] or \
                destination_data['coords'][1] > range_y[0] or destination_data['coords'][1] < range_y[1] or \
                destination_data['coords'][2] > range_z[0] or destination_data['coords'][2] < range_z[1]:
-                  continue
+                continue
             distance = calc_distance(source['coords'], destination_data['coords'])
             if distance <= range and destination_id != system_id:
                 destinations.append((destination_data, distance))
         return destinations
-

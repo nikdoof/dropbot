@@ -5,6 +5,7 @@ import logging
 
 urlparse.uses_netloc.append('tcp')
 
+
 class ZKillboardStompListener(stomp.listener.ConnectionListener):
 
     def __init__(self, bot):
