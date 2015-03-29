@@ -338,22 +338,24 @@ class DropBot(ClientXMPP):
         )
 
     def cmd_jita(self, args, msg):
+        """Returns the price of a item in Jita"""
         return self.cmd_price(['Jita'] + args, msg)
 
     def cmd_amarr(self, args, msg):
+        """Returns the price of a item in Amarr"""
         return self.cmd_price(['Amarr'] + args, msg)
 
     def cmd_rens(self, args, msg):
+        """Returns the price of a item in Rens"""
         return self.cmd_price(['Rens'] + args, msg)
 
     def cmd_dodixie(self, args, msg):
+        """Returns the price of a item in  Dodixie"""
         return self.cmd_price(['Dodixie'] + args, msg)
 
-    def cmd_hedgp(self, args, msg):
-        return self.cmd_price(['HED-GP'] + args, msg)
-
-    def cmd_ge8(self, args, msg):
-        return self.cmd_price(['GE-8JV'] + args, msg)
+    def cmd_uh(self, args, msg):
+        """Returns the price of a item in U-HVIX"""
+        return self.cmd_price(['U-HVIX'] + args, msg)
 
     def cmd_r(self, args, msg):
         return self.cmd_redditimg(args, msg)
