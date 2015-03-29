@@ -106,3 +106,57 @@ class MapTestCase(TestCase):
         The maximum jump range of a bloops is 8LY.
         """
         self.assertEquals(ship_class_to_range('blackops', 5), 8)
+
+    def test_jump_distance_skills_titan(self):
+        """
+        Test the correct range for titans for each JDC skill level
+        """
+        ship_ranges = [2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
+        for skill in range(0, 6):
+            jump_range = ship_ranges[skill]
+            self.assertEquals(ship_class_to_range('titan', skill), jump_range)
+
+    def test_jump_distance_skills_supercarrier(self):
+        """
+        Test the correct range for titans for each JDC skill level
+        """
+        ship_ranges = [2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
+        for skill in range(0, 6):
+            jump_range = ship_ranges[skill]
+            self.assertEquals(ship_class_to_range('supercarrier', skill), jump_range)
+
+    def test_jump_distance_skills_carrier(self):
+        """
+        Test the correct range for supercarriers for each JDC skill level
+        """
+        ship_ranges = [2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
+        for skill in range(0, 6):
+            jump_range = ship_ranges[skill]
+            self.assertEquals(ship_class_to_range('carrier', skill), jump_range)
+
+    def test_jump_distance_skills_dreadnought(self):
+        """
+        Test the correct range for dreadnoughts for each JDC skill level
+        """
+        ship_ranges = [2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
+        for skill in range(0, 6):
+            jump_range = ship_ranges[skill]
+            self.assertEquals(ship_class_to_range('dreadnought', skill), jump_range)
+
+    def test_jump_distance_skills_industrial(self):
+        """
+        Test the correct range for industrials for each JDC skill level
+        """
+        ship_ranges = [2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
+        for skill in range(0, 6):
+            jump_range = ship_ranges[skill]
+            self.assertEquals(ship_class_to_range('industrial', skill), jump_range)
+
+    def test_jump_distance_skills_jumpfreighter(self):
+        """
+        Test the correct range for jump freighters for each JDC skill level
+        """
+        ship_ranges = [5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+        for skill in range(0, 6):
+            jump_range = ship_ranges[skill]
+            self.assertEquals(ship_class_to_range('jumpfreighter', skill), jump_range)
