@@ -143,7 +143,6 @@ class Map(networkx.Graph):
 
     def _route_jump_fast(self, source, destination, range=None, hull=None, ship_class=None, station_only=False, avoid_systems=[]):
         """A fast but error prone route calculation between two systems using jumps"""
-        print source, destination
         route = [source]
         current_system = source
         while not destination in route:
