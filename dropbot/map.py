@@ -170,14 +170,14 @@ class Map(networkx.Graph):
 
     def route_jump(self, source, destination, range=None, hull=None, ship_class=None, station_only=False, avoid_systems=[]):
         """Calculate a jump route between two systems"""
-        closed = set()
-        open = set([source])
+        closed_set = set()
+        open_set = set([source])
         route = {}
         g_score = {source: 0}
         f_score = {source: g_score[source] + self.system_distance(source, destination)}
 
-        while len(open):
-            current = min([x for x in f_score.items() if x[0] in open], key=lambda x: x[1])[0]
+        while len(open_set):
+            current = min([x for x in f_score.items() if x[0] in open_set], key=lambda x: x[1])[0]
             if current == destination:
 
                 def build_path(route, current):
@@ -188,23 +188,23 @@ class Map(networkx.Graph):
                     return [current] 
 
                 return build_path(route, destination)
-            open.remove(current)
-            closed.add(current)
+            open_set.remove(current)
+            closed_set.add(current)
             for neighbor, distance in self.neighbors_jump(current, range, hull, ship_class):
                 neighbor_id = neighbor['system_id']
-                if neighbor_id in closed or \
+                if neighbor_id in closed_set or \
                    neighbor['security'] >= 0.45 or \
                    (station_only and not neighbor['station']) or \
                    neighbor_id in avoid_systems:
                     continue
 
                 score = g_score[current] + self.system_distance(current, neighbor_id)
-                if neighbor_id not in open or score < g_score[neighbor_id]:
+                if neighbor_id not in open_set or score < g_score[neighbor_id]:
                     route[neighbor_id] = current
                     g_score[neighbor_id] = score
                     f_score[neighbor_id] = score + self.system_distance(neighbor_id, destination)
-                    if neighbor_id not in open:
-                        open.add(neighbor_id)
+                    if neighbor_id not in open_set:
+                        open_set.add(neighbor_id)
 
     def route_jump_distance(self, route):
         """Calculate the total ly distance of a route"""
