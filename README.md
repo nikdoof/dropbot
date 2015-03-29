@@ -43,3 +43,8 @@ The configuration is passed by using environment variables.
 * ```DROPBOT_KILLS_DISABLED``` - Disables the streaming of zKillboard kills to the channels (default to 0)
 * ```DROPBOT_OFFICE_API_KEYID``` - API KeyID to use for the nearest office finder.
 * ```DROPBOT_OFFICE_API_VCODE``` - API vCode to use for the nearest office finder.
+
+Updating the SDE data
+---------------------
+
+To update the SDE data in the bot, use the ```gen_reference_data.py``` with a copy of the Sqlite conversion of the SDE, this will produce three json files that need to be copied to the data directory witthin the ```dropbot``` package.
