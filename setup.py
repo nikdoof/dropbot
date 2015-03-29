@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
+
+from dropbot import __version__ as pkg_version
 
 readme = open('README.md').read()
 
@@ -25,7 +26,7 @@ test_requirements = [
 
 setup(
     name='dropbot',
-    version='0.1a',
+    version=pkg_version,
     description='A XMPP bot to provide simple services to NOG8S and Predditors in general',
     long_description=readme,
     author='Andrew Williams',
