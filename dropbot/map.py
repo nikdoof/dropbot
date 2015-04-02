@@ -52,6 +52,17 @@ isotope_usage = {
     'blackops': 450,
 }
 
+fatiuge_bonus = {
+    'blackops': (.5, .5),
+    'covertops': (0, .5),
+    'forcerecon': (0, .5),
+    'blockaderunner': (.9, .95),
+    'industrial': (.9, 0),
+    'freighter': (.9, 0),
+    'jumpfreighter': (.9, 0),
+    'deepspacetransport': (.9, 0),
+}
+
 
 EVE_LY = 9460000000000000  # EVE's definition of a ly in KM
 
@@ -233,6 +244,34 @@ class Map(networkx.Graph):
         base = isotope_usage[ship_class] * multi
         ly = self.route_jump_distance(route)
         return round(ly * base, 0)
+
+    def jump_fatigue(self, fatigue, source, destination, bonus=0, ship_class=None, jump_type='standard'):
+        """Calculate the jump fatigue gained by jumping between two systems"""
+        if bonus == 0 and ship_class:
+            standard = covert = 0
+            if ship_class and ship_class in fatiuge_bonus:
+                standard, covert = fatiuge_bonus[ship_class]
+            if jump_type == 'standard':
+                bonus = standard
+            else:
+                bonus = covert
+        distance = self.system_distance(source, destination)
+        cooldown = max(fatigue / 10, 1 + (distance * (1-bonus)))
+        new_fatigue = min(60 * 24 * 30, max(fatigue, 10) * (1 + (distance * (1 - bonus))))
+        return round(cooldown, 2), round(new_fatigue, 2)
+
+    def route_jump_fatigue(self, route, fatigue, bonus=0, ship_class=None, jump_type='standard'):
+        """Calculate the jump fatigue for the specified route"""
+        results = []
+        source = route.pop(0)
+        for target in route:
+            cooldown, new_fatigue = self.jump_fatigue(fatigue, source, target, bonus, ship_class, jump_type)
+            results.append({
+                'source': source, 'target': target, 'cooldown': cooldown, 'fatigue': new_fatigue,
+            })
+            source = target
+            fatigue = new_fatigue
+        return results
 
     def neighbors_gate(self, system_id):
         """List systems that are connected to a system by gates"""

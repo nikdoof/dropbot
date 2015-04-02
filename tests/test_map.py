@@ -8,18 +8,22 @@ class MapTestCase(TestCase):
         self.map = Map.from_json(pkgutil.get_data('dropbot', 'data/map.json'))
 
     def test_load_from_package_data(self):
+        """Check the package data can be correctly loaded into the map"""
         m = Map.from_json(pkgutil.get_data('dropbot', 'data/map.json'))
         self.assertIsNotNone(m)
 
     def test_get_system_name(self):
+        """Test looking up system names from IDs"""
         self.assertEquals(self.map.get_system_name(123), None)
         self.assertEqual(self.map.get_system_name(30000142), 'Jita')
 
     def test_get_system_id(self):
+        """Test looking up system ID by name"""
         self.assertEqual(self.map.get_system_id('Llamatron'), None)
         self.assertEqual(self.map.get_system_id('Jita'), 30000142)
 
     def test_get_systems(self):
+        """Check partial matching of system names works correctly"""
         self.assertEquals(len(self.map.get_systems('Jita')), 1)
         self.assertEquals(len(self.map.get_systems('Ji')), 7)
         self.assertEquals(len(self.map.get_systems('J')), 2760)
@@ -29,12 +33,14 @@ class MapTestCase(TestCase):
         self.assertEquals(len(self.map.get_systems('JiTa')), 1)
 
     def test_system_distance(self):
+        """Test the distance calculator"""
         self.assertEqual(self.map.system_distance(30000142, 30000144), 2.10268108033618)
         self.assertEqual(self.map.system_distance(30000142, 30000222), 9.334275248404591)
         self.assertEqual(self.map.system_distance(30000142, 30000536), 39.15289747780095)
         self.assertRaises(Exception, self.map.system_distance, (1, 2))
 
     def test_route_gate(self):
+        """Test the gate routing system"""
         r = self.map.route_gate(30001161, 30001198)
         self.assertEqual(len(r), 9)
         self.assertListEqual(r, [30001161, 30001158, 30001160, 30001154, 30001157, 30001155, 30001156, 30001162, 30001198])
@@ -48,6 +54,63 @@ class MapTestCase(TestCase):
     def test_route_jump_isotopes(self):
         pass
 
+    def test_jump_fatigue_standard(self):
+        """Test jump fatigue calculator, 4.119ly jump, no bonus"""
+        sys1 = self.map.get_system_id('U-HVIX')
+        sys2 = self.map.get_system_id('V-IUEL')
+        cooldown, new_fatigue = self.map.jump_fatigue(0, sys1, sys2)
+        self.assertEqual(cooldown, 5.12)
+        self.assertEqual(new_fatigue, 51.19)
+
+    def test_jump_fatigue_covertops(self):
+        """Test jump fatigue calculator, 4.119ly jump, covertops being bridged by titan"""
+        sys1 = self.map.get_system_id('U-HVIX')
+        sys2 = self.map.get_system_id('V-IUEL')
+        cooldown, new_fatigue = self.map.jump_fatigue(0, sys1, sys2, ship_class='covertops')
+        self.assertEqual(cooldown, 5.12)
+        self.assertEqual(new_fatigue, 51.19)
+
+    def test_jump_fatigue_covertops_covertcyno(self):
+        """Test jump fatigue calculator, 4.119ly jump, covertops being bridged by blops"""
+        sys1 = self.map.get_system_id('U-HVIX')
+        sys2 = self.map.get_system_id('V-IUEL')
+        cooldown, new_fatigue = self.map.jump_fatigue(0, sys1, sys2, ship_class='covertops', jump_type='covert')
+        self.assertEqual(cooldown, 3.06)
+        self.assertEqual(new_fatigue, 30.59)
+
+    def test_route_jump_fatigue_covertops_covertcyno(self):
+        """Test jump fatigue calculator, 4.119ly jump, covertops being bridged by blops"""
+        sys1 = self.map.get_system_id('U-HVIX')
+        sys2 = self.map.get_system_id('V-IUEL')
+        res = self.map.route_jump_fatigue([sys1, sys2], 0, ship_class='covertops', jump_type='covert')
+        self.assertListEqual(res, [
+            {'source': sys1, 'target': sys2, 'cooldown': 3.06, 'fatigue': 30.59,}
+        ])
+
+    def test_route_jump_fatigue_covertops_covertcyno_two_jumps(self):
+        """Test route jump fatigue calculator, covertops being bridged by blops for two jumps"""
+        sys1 = self.map.get_system_id('U-HVIX')
+        sys2 = self.map.get_system_id('RMOC-W')
+        sys3 = self.map.get_system_id('Podion')
+        res = self.map.route_jump_fatigue([sys1, sys2, sys3], 0, ship_class='covertops', jump_type='covert')
+        self.assertListEqual(res, [
+            {'source': sys1, 'target': sys2, 'cooldown': 4.77, 'fatigue': 47.72, },
+            {'source': sys2, 'target': sys3, 'cooldown': 4.77, 'fatigue': 222.91, },
+        ])
+
+    def test_route_jump_fatigue_covertops_covertcyno_three_jumps(self):
+        """Test route jump fatigue calculator, covertops being bridged by blops for three jumps"""
+        sys1 = self.map.get_system_id('U-HVIX')
+        sys2 = self.map.get_system_id('RMOC-W')
+        sys3 = self.map.get_system_id('Podion')
+        sys4 = self.map.get_system_id('Hothomouh')
+        res = self.map.route_jump_fatigue([sys1, sys2, sys3, sys4], 0, ship_class='covertops', jump_type='covert')
+        self.assertListEqual(res, [
+            {'source': sys1, 'target': sys2, 'cooldown': 4.77, 'fatigue': 47.72, },
+            {'source': sys2, 'target': sys3, 'cooldown': 4.77, 'fatigue': 222.91, },
+            {'source': sys3, 'target': sys4, 'cooldown': 22.29, 'fatigue': 786.39, },
+        ])
+
     def test_neighbors_gate(self):
         pass
 
@@ -55,7 +118,7 @@ class MapTestCase(TestCase):
         pass
 
     def test_jump_bridge_addition(self):
-        # HED-GP to GE-8
+        """Test addition of a jump bridge"""
         self.assertGreater(len(self.map.route_gate(30001161, 30001198)), 2)
         self.map.add_jumpbridge(30001161, 30001198)
         r = self.map.route_gate(30001161, 30001198)
