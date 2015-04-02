@@ -12,7 +12,7 @@ class DropBotTestCase(TestCase):
 
     def call_command(self, command, args=[]):
         """Fakes a call to a bot command"""
-        msg = mock.Mock()
+        msg = {'type': 'groupchat'}
         return self.bot.call_command(command, args, msg)
 
     def test_simple_bot(self):
@@ -136,7 +136,12 @@ class DropBotTestCase(TestCase):
         pass
 
     def test_cmd_mute(self):
-        pass
+        self.assertEqual(self.bot.kills_muted, False)
+        res = self.call_command('mute')
+        self.assertIsInstance(res, tuple)
+        self.assertIsInstance(res[0], basestring)
+        self.assertEqual(res[0], 'Killmails muted, posting will resume automatically in 30 minutes')
+        self.assertEqual(self.bot.kills_muted, True)
 
     @unittest.skipIf(os.environ.get('NO_NETWORK', '0') == '1', 'No networking, skipping test')
     def test_cmd_nearestoffice(self):
