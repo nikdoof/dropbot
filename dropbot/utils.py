@@ -2,6 +2,36 @@ from hashlib import sha1
 import zlib
 import redis
 import logging
+import math
+
+
+def decimal_minutes_to_hms(minutes):
+    """Converts a value of decimal minutes into a hms format"""
+    if not isinstance(minutes, (int, float, long)):
+        if isinstance(minutes, basestring):
+            try:
+                minutes = float(minutes)
+            except ValueError:
+                raise ValueError('minutes is not a valid number')
+        else:
+            raise ValueError('minutes is not a valid number')
+
+    # If we have a negative number, invert
+    if minutes < 0:
+        minutes = -1 * minutes
+
+    out_secs = round(60 * (minutes % 1))
+    out_minutes = math.floor(minutes) % 60
+    out_hours = math.floor(math.floor(minutes) / 60)
+
+    output = ''
+    if out_hours > 0:
+        output += '{}h '.format(int(out_hours))
+    if out_minutes > 0:
+        output += '{}m '.format(int(out_minutes))
+    if out_secs > 0:
+        output += '{}s '.format(int(out_secs))
+    return output.strip()
 
 
 class EVEAPIRedisCache(object):
