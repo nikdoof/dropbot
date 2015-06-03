@@ -26,7 +26,7 @@ class MapTestCase(TestCase):
         """Check partial matching of system names works correctly"""
         self.assertEquals(len(self.map.get_systems('Jita')), 1)
         self.assertEquals(len(self.map.get_systems('Ji')), 7)
-        self.assertEquals(len(self.map.get_systems('J')), 2760)
+        self.assertEquals(len(self.map.get_systems('J')), 2765)
         self.assertEquals(len(self.map.get_systems('123435345345')), 0)
         self.assertEquals(len(self.map.get_systems('jita')), 1)
         self.assertEquals(len(self.map.get_systems('JITA')), 1)
