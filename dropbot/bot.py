@@ -184,7 +184,6 @@ class DropBot(ClientXMPP):
                         return (i, v)
                 else:
                     if len(types) > 10:
-                        import pdb; pdb.set_trace()
                         return "More than 10 items found, please narrow down what you want."
                     return "Did you mean: {}?".format(
                         ', '.join(types.itervalues())
