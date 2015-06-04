@@ -149,3 +149,9 @@ class DropBotTestCase(TestCase):
 
     def test_cmd_rageping(self):
         pass
+
+    def test_carnyx_items(self):
+        """
+        The items in the Carnyx release can be found.
+        """
+        self.assertEqual(self.bot._item_picker("Jackdaw"), (u'34828', u'Jackdaw'))
