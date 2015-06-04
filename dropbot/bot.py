@@ -174,7 +174,7 @@ class DropBot(ClientXMPP):
             if item.strip() == '':
                 return 'Usage: !price <item>'
             if item.lower() == 'plex':
-                item = '30 Day'
+                return (u"29668", u"30 Day Pilot's License Extension (PLEX)")
             types = dict([(i, v) for i, v in self.types.iteritems() if item.lower() in v.lower()])
             if len(types) == 0:
                 return "No items named {} found".format(item)
