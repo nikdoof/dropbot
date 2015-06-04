@@ -150,8 +150,11 @@ class DropBotTestCase(TestCase):
     def test_cmd_rageping(self):
         pass
 
-    def test_carnyx_items(self):
+    def test_jackdaw(self):
         """
         The items in the Carnyx release can be found.
         """
         self.assertEqual(self.bot._item_picker("Jackdaw"), (u'34828', u'Jackdaw'))
+
+    def test_carnyx_plex(self):
+        self.assertEqual(self.bot._item_picker("plex"), (u"29668", "30 Day Pilot's License Extension (PLEX)"))
