@@ -52,11 +52,12 @@ To update the SDE data in the bot, use the ```gen_reference_data.py``` with a co
 
 The SDE conversion is usually available here: https://www.fuzzwork.co.uk/dump/
 
-    $ python gen_reference_data.py eve.db
+    $ wget https://www.fuzzwork.co.uk/dump/sqlite-latest.sqlite.bz2
+    $ python gen_reference_data.py sqlite-latest.sqlite.bz2
     Importing Types...
     Importing Stations...
     Importing Map...
-    $ ls -1
+    $ ls *.json
     map.json
     stations.json
     types.json
