@@ -40,7 +40,7 @@ class DropBot(ClientXMPP):
         self.kills_muted = False
         self.office_api_key_keyid = kwargs.pop('office_api_keyid', None)
         self.office_api_key_vcode = kwargs.pop('office_api_vcode', None)
-        self.market_systems = kwargs.pop('market_systems', ['Jita', 'Amarr', 'Rens', 'Dodixie'])
+        self.market_systems = kwargs.pop('market_systems', ['Jita', 'Amarr', 'Rens', 'Dodixie', 'Hek'])
 
         if 'redis_url' in kwargs:
             self.redis_pool = ConnectionPool.from_url(kwargs.pop('redis_url', 'redis://localhost:6379/0'))
@@ -345,8 +345,12 @@ class DropBot(ClientXMPP):
         return self.cmd_price(['Rens'] + args, msg)
 
     def cmd_dodixie(self, args, msg):
-        """Returns the price of a item in  Dodixie"""
+        """Returns the price of a item in Dodixie"""
         return self.cmd_price(['Dodixie'] + args, msg)
+        
+    def cmd_hek(self, args, msg):
+        """Returns the price of a item in Hek"""
+        return self.cmd_price(['Hek'] + args, msg)
 
     def cmd_uh(self, args, msg):
         """Returns the price of a item in U-HVIX"""
