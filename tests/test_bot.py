@@ -78,6 +78,12 @@ class DropBotTestCase(TestCase):
         self.assertIsInstance(res, tuple)
         self.assertIsInstance(res[0], basestring)
 
+    @unittest.skipIf(os.environ.get('NO_NETWORK', '0') == '1', 'No networking, skipping test')
+    def test_cmd_hek(self):
+        res = self.call_command('hek', ['rifter'])
+        self.assertIsInstance(res, tuple)
+        self.assertIsInstance(res[0], basestring)
+
     def test_cmd_r(self):
         pass
 
