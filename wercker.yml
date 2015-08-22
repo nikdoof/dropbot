@@ -28,7 +28,7 @@ deploy:
           scp -r -i $PRIVATEKEY_PATH -o StrictHostKeyChecking=no -o UserKnownHostsFile=no * $TARGET_USER@$TARGET_HOST:dropbot/
     - script:
         name: building virtualenv
-        code: ssh -i $PRIVATEKEY_PATH -l root -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $TARGET_HOST virtualenv venv --no-site-packages
+        code: ssh -i $PRIVATEKEY_PATH -l $TARGET_USER -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $TARGET_HOST virtualenv venv --no-site-packages
     - script:
         name: installing requirements
-        code: ssh -i $PRIVATEKEY_PATH -l root -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $TARGET_HOST source venv/bin/activate && cd dropbot/ && pip install -r requirements      
+        code: ssh -i $PRIVATEKEY_PATH -l $TARGET_USER -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $TARGET_HOST source venv/bin/activate && cd dropbot/ && pip install -r requirements      
