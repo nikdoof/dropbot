@@ -12,23 +12,23 @@ build:
           python setup.py test
 deploy:
   steps:
-  - add-to-known_hosts:
+    - add-to-known_hosts:
         hostname: $TARGET_HOST
-   - mktemp:
+    - mktemp:
       envvar: PRIVATEKEY_PATH
-   - create-file:
+    - create-file:
       name: write key
       filename: $PRIVATEKEY_PATH
       content: $SSH_KEY_PRIVATE
       overwrite: true
       hide-from-log: true
-   - script:
+    - script:
       name: transfer application
       code: |
         scp -r -i $PRIVATEKEY_PATH -o StrictHostKeyChecking=no -o UserKnownHostsFile=no * $TARGET_USER@$TARGET_HOST:dropbot/
-   - script:
+    - script:
       name: building virtualenv
       code: ssh -i $PRIVATEKEY_PATH -l root -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $TARGET_HOST virtualenv venv --no-site-packages
-   - script:
+    - script:
       name: installing requirements
       code: ssh -i $PRIVATEKEY_PATH -l root -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $TARGET_HOST source venv/bin/activate && cd dropbot/ && pip install -r requirements      
