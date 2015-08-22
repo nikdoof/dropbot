@@ -31,4 +31,4 @@ deploy:
         code: ssh -i $PRIVATEKEY_PATH -l $TARGET_USER -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $TARGET_HOST virtualenv venv --no-site-packages
     - script:
         name: installing requirements
-        code: ssh -i $PRIVATEKEY_PATH -l $TARGET_USER -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $TARGET_HOST source venv/bin/activate && cd dropbot/ && pip install -r requirements      
+        code: ssh -i $PRIVATEKEY_PATH -l $TARGET_USER -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $TARGET_HOST source venv/bin/activate && cd dropbot/ && pip install -r requirements.txt      
