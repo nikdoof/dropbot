@@ -13,6 +13,7 @@ env/
 build/
 develop-eggs/
 dist/
+.eggs/
 eggs/
 lib/
 lib64/
@@ -40,6 +41,7 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+_trial_temp/
 
 # Translations
 *.mo
@@ -62,3 +64,8 @@ eve.db
 
 # Vagrant
 .vagrant/
+
+# Cruft
+*.json
+sde.sqlite
+sde.sqlite.bz2
