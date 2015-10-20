@@ -13,7 +13,6 @@ if [ -e sde.sqlite ]; then
     /usr/bin/env python setup.py test > /dev/null 2>&1
     
     if [ $? -eq 0 ]; then
-        git add dropbox/data/*.json
         git status
         echo "SDE data updated successfully"
     else
