@@ -352,10 +352,6 @@ class DropBot(ClientXMPP):
         """Returns the price of a item in Hek"""
         return self.cmd_price(['Hek'] + args, msg)
 
-    def cmd_uh(self, args, msg):
-        """Returns the price of a item in U-HVIX"""
-        return self.cmd_price(['U-HVIX'] + args, msg)
-
     def cmd_r(self, args, msg):
         return self.cmd_redditimg(args, msg)
 
